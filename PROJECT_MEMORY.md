@@ -32,6 +32,10 @@ Construir una tienda online profesional con:
 - Migraciones SQL manuales en `infra/db/migrations/`.
 - `.gitignore` revisado y completo para el monorepo (Node, .NET, Expo, IDEs, logs).
 - `.claude/` excluido del repositorio (configuración interna de la herramienta).
+- Panel admin usa token cookie `admin_token` para autenticación de desarrollo.
+- Middleware Next.js protege todas las rutas admin; redirige a `/login` si no hay token.
+- Token JWT almacenado como cookie con SameSite=Strict, expira en 1 día.
+- `next build` falla con `TypeError: generate is not a function` en Next.js 16.0.10 en este entorno (error pre-existente, afecta también a `web-store`). El typecheck (`tsc --noEmit`) pasa correctamente.
 
 ## Resumen de lo realizado
 
@@ -62,6 +66,20 @@ Construir una tienda online profesional con:
 - Se crearon tests de autorización: 401 sin token, 200 con Admin, 403 con Customer/Staff.
 - Build limpio: 0 warnings, 0 errores. Tests: 7/7 correctos.
 - Primer commit del repositorio ejecutado.
+
+### Tarea 4: Base administrativa inicial (web-admin)
+- Se construyó la estructura completa del panel administrativo en `apps/web-admin`.
+- Capa de API cliente con manejo de token, errores y configuración por variables de entorno.
+- Sesión de desarrollo basada en cookie `admin_token` compatible con middleware Next.js.
+- Middleware de protección de rutas (`middleware.ts`) que redirige a `/login` si no hay token.
+- Página de login conectada a `POST /api/v1/auth/dev/token`.
+- Layout administrativo persistente con Sidebar (navegación) y Topbar (logout).
+- Dashboard funcional con consumo de `/api/v1/system/info` y `/api/v1/admin/ping`.
+- Páginas placeholder estructuradas: `/catalog`, `/inventory`, `/orders`, `/customers`, `/settings`.
+- Raíz `/` redirige automáticamente a `/dashboard`.
+- CSS dark theme consistente con el bootstrap previo.
+- TypeScript typecheck: 0 errores, 0 advertencias.
+- `next build` muestra error pre-existente de Next.js 16.0.10 en este entorno (ver riesgos).
 
 ## Estructura completa de apps/api
 
@@ -113,6 +131,48 @@ apps/api/
       TiendaOnline.Api.Tests.csproj
 ```
 
+## Estructura completa de apps/web-admin
+
+```
+apps/web-admin/
+  app/
+    (admin)/
+      layout.tsx                    ← layout admin con Sidebar y Topbar
+      dashboard/
+        page.tsx                    ← dashboard con system/info y admin/ping
+      catalog/
+        page.tsx                    ← placeholder
+      inventory/
+        page.tsx                    ← placeholder
+      orders/
+        page.tsx                    ← placeholder
+      customers/
+        page.tsx                    ← placeholder
+      settings/
+        page.tsx                    ← placeholder
+    login/
+      page.tsx                      ← formulario de acceso de desarrollo
+    globals.css                     ← dark theme admin
+    layout.tsx                      ← root layout
+    page.tsx                        ← redirect → /dashboard
+  components/
+    admin/
+      Sidebar.tsx                   ← navegación lateral
+      Topbar.tsx                    ← header con logout
+      PlaceholderPage.tsx           ← componente reutilizable para páginas placeholder
+  lib/
+    api/
+      client.ts                     ← apiFetch base con manejo de token y errores
+      auth.ts                       ← requestDevToken()
+      system.ts                     ← getSystemInfo(), pingAdmin()
+    session.ts                      ← getToken(), setToken(), clearToken() (cookie)
+  middleware.ts                     ← protección de rutas
+  .env.local                        ← variables de entorno locales (gitignored)
+  next.config.ts
+  tsconfig.json
+  package.json
+```
+
 ## Endpoints disponibles
 - `GET /health` → liveness, siempre 200.
 - `GET /health/ready` → readiness, verifica PostgreSQL y Redis.
@@ -127,16 +187,22 @@ apps/api/
 - La migración SQL (`infra/db/migrations/001_create_identity_tables.sql`) debe aplicarse manualmente antes de usar identidad en producción.
 - `appsettings.Development.json` tiene un `SecretKey` de desarrollo. En producción debe sobrescribirse via variable de entorno `Auth__SecretKey`.
 - `POST /api/v1/auth/dev/token` solo funciona en `Development`. No hay protección adicional aparte del entorno.
+- `next build` falla con `TypeError: generate is not a function` en Next.js 16.0.10 en este entorno Windows. Este error es pre-existente: también afecta a `apps/web-store` que no fue modificada. El typecheck (`tsc --noEmit`) pasa sin errores. Posible incompatibilidad de Next.js 16 con alguna dependencia del entorno.
+- El token en cookie no es `httpOnly`, por lo que es legible desde JS (intencional para dev; en producción se debe usar httpOnly + refresh token).
+- La protección de rutas en middleware es superficial (verifica existencia de la cookie, no valida el JWT en sí). Suficiente para fase de desarrollo.
 
 ## Validaciones ejecutadas (todas las tareas)
 - `dotnet build apps/api/TiendaOnline.Api.slnx` → 0 errores, 0 advertencias ✓
 - `dotnet test apps/api/TiendaOnline.Api.slnx` → 7/7 correctos ✓
 - Auth tests: 401 sin token, 200 Admin, 403 Customer, 403 Staff ✓
 - Smoke tests: /health 200, /api/v1/system/info 200 ✓
-- `npm run build:web-store` y `build:web-admin` correctos ✓
-- `docker compose up -d` y `docker compose ps` correctos ✓
+- `npm install --workspace=apps/web-admin` → correcto ✓
+- `tsc --noEmit` en `apps/web-admin` → 0 errores, 0 advertencias ✓
+- `next build` en `apps/web-admin` → falla (pre-existente, ver riesgos) ⚠
+- `next build` en `apps/web-store` (sin modificar) → mismo error, confirma que es pre-existente ⚠
 
 ## Siguientes pasos recomendados
+- Investigar y resolver el error pre-existente de `next build` (`TypeError: generate is not a function`) en Next.js 16.0.10. Podría requerir actualizar dependencias o cambiar de versión.
 - Aplicar migración SQL: `infra/db/migrations/001_create_identity_tables.sql`.
 - Agregar hash de contraseñas (BCrypt) cuando se implemente el registro real.
 - Introducir OpenAPI (Swashbuckle o soporte nativo .NET) cuando haya endpoints de negocio.
@@ -144,3 +210,5 @@ apps/api/
 - Definir ADR para contratos compartidos entre API, web y mobile.
 - Empezar estructura de bounded contexts del dominio (Catalog, Customers) sin lógica compleja.
 - Mantener el enfoque en Fase 1; no adelantar catálogo, carrito, checkout, pagos reales ni FEL real.
+- Cuando se implemente auth real: migrar cookie a httpOnly + refresh token.
+- Considerar `packages/api-client` como capa compartida cuando web-store también necesite cliente HTTP.
