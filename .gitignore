@@ -1,0 +1,90 @@
+# ─── Node / npm ───────────────────────────────────────────────────────────────
+node_modules/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ─── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+out/
+
+# ─── Build & dist ─────────────────────────────────────────────────────────────
+dist/
+build/
+
+# ─── Tests & cobertura ────────────────────────────────────────────────────────
+coverage/
+TestResults/
+*.trx
+*.xml.transform
+
+# ─── Expo / React Native ──────────────────────────────────────────────────────
+.expo/
+.expo-shared/
+web-build/
+
+# ─── Turbo ────────────────────────────────────────────────────────────────────
+.turbo/
+
+# ─── .NET build artifacts ─────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.nupkg
+*.snupkg
+nupkgs/
+
+# ─── .NET local secrets / overrides ──────────────────────────────────────────
+**/appsettings.local.json
+**/appsettings.*.local.json
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ─── Archivos temporales ──────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ─── Sistema operativo ────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ─── IDE / editor ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# ─── Variables de entorno sensibles ──────────────────────────────────────────
+# Los archivos .env.example SÍ se versionan.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging.local
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+docker-data/
+
+# ─── .dotnet (tool home local) ────────────────────────────────────────────────
+.dotnet/
+
+# ─── Claude Code (herramienta de desarrollo, no código del proyecto) ──────────
+.claude/

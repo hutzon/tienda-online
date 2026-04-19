@@ -1,0 +1,28 @@
+{
+  "name": "tienda-online",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@11.6.4",
+  "engines": {
+    "node": "22.13.1"
+  },
+  "workspaces": [
+    "apps/web-store",
+    "apps/web-admin",
+    "apps/mobile-app"
+  ],
+  "scripts": {
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "dev:api": "dotnet run --project apps/api/src/TiendaOnline.Api/TiendaOnline.Api.csproj",
+    "dev:fel-mock": "dotnet run --project mocks/fel-sat-mock/FelSatMock.Api.csproj",
+    "dev:web-store": "npm run dev -w @tienda-online/web-store",
+    "dev:web-admin": "npm run dev -w @tienda-online/web-admin",
+    "dev:mobile": "npm run dev -w @tienda-online/mobile-app",
+    "build:web-store": "npm run build -w @tienda-online/web-store",
+    "build:web-admin": "npm run build -w @tienda-online/web-admin",
+    "typecheck:web-store": "npm run typecheck -w @tienda-online/web-store",
+    "typecheck:web-admin": "npm run typecheck -w @tienda-online/web-admin",
+    "typecheck:mobile": "npm run typecheck -w @tienda-online/mobile-app"
+  }
+}

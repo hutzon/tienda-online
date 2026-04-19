@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/config/tsconfig.expo.json",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

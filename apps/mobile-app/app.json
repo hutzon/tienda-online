@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "TiendaOnline",
+    "slug": "tienda-online-mobile",
+    "scheme": "tiendaonline",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"]
+  }
+}
