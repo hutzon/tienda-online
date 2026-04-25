@@ -10,7 +10,7 @@ const PROTECTED_PREFIXES = [
   '/settings',
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value;
   const { pathname } = request.nextUrl;
 

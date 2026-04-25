@@ -2,18 +2,18 @@
 
 ## Propósito
 
-Dejar el proyecto listo para comenzar desarrollo ordenado de Fase 1 sin mezclar decisiones no documentadas ni adelantar módulos complejos de negocio.
+Dejar el proyecto listo para desarrollo ordenado de Fase 1 sin adelantar módulos complejos de negocio.
 
 ## Visión general del sistema
 
-TiendaOnline tendrá tres clientes principales y un backend compartido:
+TiendaOnline tendrá tres clientes y un backend compartido:
 
 - web pública orientada a SEO, conversión y compra;
 - app móvil orientada a experiencia nativa y seguimiento;
 - panel administrativo orientado a operación interna;
 - backend central responsable del dominio, seguridad e integraciones.
 
-La arquitectura objetivo sigue siendo:
+Arquitectura objetivo:
 
 ```text
 Web Store (Next.js)        Mobile App (Expo)        Admin Web (Next.js)
@@ -59,8 +59,6 @@ Tienda-Online/
 
 ## Stack técnico fijado
 
-### Confirmado y bootstrapeado
-
 - Gestor de paquetes y workspace: `npm workspaces`
 - Node.js: `22.13.1`
 - .NET SDK: `10.0.103`
@@ -72,28 +70,50 @@ Tienda-Online/
 - Mobile: Expo `55.0.0` + React Native `0.83.0` + TypeScript
 - Backend: ASP.NET Core Web API
 
-### Decisiones técnicas iniciales
+## Decisiones técnicas iniciales
 
 - Arquitectura backend inicial: modular monolith.
-  Justificación: coincide con la documentación y reduce complejidad temprana.
+  Justificación: reduce complejidad temprana y coincide con la documentación vigente.
 
-- Contratos compartidos: `packages/types` y `packages/api-client`.
-  Justificación: evita duplicación entre apps sin forzar compartir UI o lógica donde no corresponde.
+- Contratos compartidos potenciales en `packages/types` y `packages/api-client`.
+  Justificación: evita duplicación futura sin acoplar prematuramente las apps.
 
-- Infraestructura local separada en `infra/` y `docker-compose.yml` en raíz.
-  Justificación: mantiene visible y simple el arranque local del proyecto.
+- Infraestructura local visible desde raíz con `docker-compose.yml`.
+  Justificación: simplifica arranque y soporte entre agentes.
 
 - Mock FEL/SAT oficial en `mocks/fel-sat-mock/`.
-  Justificación: la ruta ya existe en la raíz del monorepo y evita seguir dejando el mock principal enterrado solo en documentación heredada.
+  Justificación: elimina ambigüedad con referencias heredadas.
 
-- OpenAPI diferido.
-  Justificación: en esta fase se priorizó un backend compilable sin dependencias adicionales innecesarias.
+- `apps/api` con `launchSettings.json` para `Development` local.
+  Justificación: estabiliza `dotnet run` y evita errores 500 por configuración incompleta en local.
+
+## Estado actual de implementación
+
+### Ya resuelto
+
+1. Workspace raíz funcional con `npm workspaces`.
+2. Apps base creadas: `apps/web-store`, `apps/web-admin`, `apps/mobile-app`, `apps/api`.
+3. Infra local mínima preparada con PostgreSQL y Redis.
+4. Mock FEL/SAT oficial definido y ejecutable.
+5. Backend base con health checks, auth base y roles.
+6. Web admin base funcional con login de desarrollo y dashboard.
+7. Storefront base funcional con rutas públicas placeholder y consumo básico de API.
+8. Builds de `web-store` y `web-admin` validados correctamente.
+
+### No incluido todavía
+
+- pagos reales;
+- integración real con SAT/FEL;
+- catálogo real conectado a base de datos;
+- carrito, checkout y pedidos reales;
+- autenticación final de clientes;
+- branding definitivo.
 
 ## Módulos principales del sistema
 
 ### Clientes
 
-- `web-store`: catálogo, carrito, checkout, auth, tracking y contenido SEO.
+- `web-store`: catálogo, carrito, checkout, auth y contenido SEO.
 - `web-admin`: productos, inventario, pedidos, facturación, clientes, reportes y auditoría.
 - `mobile-app`: auth, catálogo, carrito, checkout, tracking, perfil y push notifications.
 
@@ -114,53 +134,22 @@ Tienda-Online/
 - Admin
 - Audit
 
-## Estado actual de implementación
-
-### Ya resuelto
-
-1. Workspace raíz funcional con `npm workspaces`.
-2. Apps base creadas:
-   - `apps/web-store`
-   - `apps/web-admin`
-   - `apps/mobile-app`
-   - `apps/api`
-3. Infra local mínima operativa con PostgreSQL y Redis.
-4. Mock FEL/SAT oficial definido y ejecutable.
-5. Variables de entorno de ejemplo por app.
-6. Scripts raíz de desarrollo y build.
-
-### No incluido todavía
-
-- pagos reales;
-- integración real con SAT/FEL;
-- catálogo, carrito, checkout y pedidos;
-- autenticación completa;
-- pantallas de negocio completas;
-- selección cerrada de PSP, certificador FEL o courier.
-
 ## Riesgos detectados
 
-- No hay Git inicializado en esta carpeta.
-- `Program.cs` en la raíz sigue existiendo y puede confundir si no se usa la documentación actualizada.
-- Los comandos de Next.js y Expo dentro del sandbox pueden lanzar `spawn EPERM`; fuera del sandbox funcionaron correctamente.
+- Si Docker Desktop no está iniciado, `docker compose` no puede validar PostgreSQL y Redis.
+- `Program.cs` en la raíz sigue existiendo como referencia histórica y puede confundir si no se sigue la documentación.
+- Next.js 16 muestra warning de `baseline-browser-mapping` desactualizado; no bloquea build.
 - OpenAPI todavía no está incorporado.
 
-## Supuestos pendientes por confirmar
-
-- Web y admin seguirán como apps separadas, no como una sola app Next.js con áreas internas.
-- El backend se mantendrá como una sola API inicial, sin BFFs separados.
-- El primer paso de dominio será estructura modular y contratos, no lógica de negocio completa.
-
-## Contradicciones o vacíos ya resueltos
+## Hallazgos resueltos
 
 - La ruta canónica del mock ya no es ambigua: `mocks/fel-sat-mock/`.
-- `Program.cs` en raíz queda solo como referencia histórica temporal.
-- El vacío de bootstrap quedó cubierto con `docs/01_setup_local.md`.
+- El error histórico `TypeError: generate is not a function` no fue reproducido en la validación actual.
+- El problema real de `web-admin` era el uso de `useSearchParams()` sin `Suspense`, ya corregido.
 
 ## Siguientes pasos priorizados
 
-1. Definir ADR corta para contratos compartidos y estrategia de cliente API.
-2. Agregar smoke tests y pruebas base del backend.
-3. Introducir OpenAPI cuando existan primeros endpoints reales.
-4. Preparar la base de modularización backend por bounded contexts.
-5. Mantener el alcance en Fase 1 sin adelantar módulos de negocio.
+1. Definir contratos compartidos para catálogo cuando exista el primer endpoint real.
+2. Aplicar la migración SQL de identidad.
+3. Introducir OpenAPI cuando aparezcan endpoints de negocio.
+4. Mantener el alcance en Fase 1 sin adelantar módulos de negocio complejos.

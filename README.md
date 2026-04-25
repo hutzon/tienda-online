@@ -1,6 +1,6 @@
 # TIENDA-ONLINE
 
-Monorepo base del proyecto **TiendaOnline** listo para desarrollo local inicial, sin lógica de negocio compleja.
+Monorepo base del proyecto **TiendaOnline** preparado para desarrollo local inicial.
 
 ## Contexto obligatorio
 
@@ -10,8 +10,7 @@ Antes de continuar el desarrollo, revisar:
 - `PROJECT_MEMORY.md`
 - `docs/00_arranque_tecnico.md`
 - `docs/01_setup_local.md`
-- `docs/handoffs/2026-04-19_arranque_tecnico.md`
-- `docs/handoffs/2026-04-19_scaffolding_monorepo.md`
+- `docs/handoffs/*`
 - `TiendaOnline_Master_Plan/docs/*`
 
 ## Stack fijado para esta fase
@@ -49,11 +48,13 @@ Tienda-Online/
   TiendaOnline_Master_Plan/
 ```
 
-## Mock FEL/SAT
+## Estado base actual
 
-- Ubicación oficial actual: `mocks/fel-sat-mock/`
-- `Program.cs` en la raíz queda solo como referencia histórica temporal.
-- La copia en `TiendaOnline_Master_Plan/mocks/fel-sat-mock/` se conserva como fuente heredada y contexto documental.
+- `apps/api`: backend base con health checks, auth base y roles.
+- `apps/web-admin`: panel administrativo inicial funcional.
+- `apps/web-store`: storefront base con layout público, placeholders y cliente API simple.
+- `apps/mobile-app`: bootstrap Expo.
+- `mocks/fel-sat-mock`: ubicación oficial del mock FEL/SAT.
 
 ## Arranque local rápido
 
@@ -67,6 +68,10 @@ npm run dev:web-admin
 npm run dev:mobile
 ```
 
+Notas:
+- `apps/api` ya incluye `launchSettings.json`, por lo que `dotnet run` local arranca en `Development`.
+- Si Docker Desktop no está iniciado, `docker compose` y `/health/ready` no quedarán operativos.
+
 ## Scripts raíz
 
 - `npm run infra:up`
@@ -78,11 +83,14 @@ npm run dev:mobile
 - `npm run dev:mobile`
 - `npm run build:web-store`
 - `npm run build:web-admin`
+- `npm run typecheck:web-store`
+- `npm run typecheck:web-admin`
+- `npm run typecheck:mobile`
 
 ## Documentos operativos
 
 - `docs/00_arranque_tecnico.md`: decisiones de arranque y arquitectura inicial.
-- `docs/01_setup_local.md`: setup local, convenciones y validaciones.
+- `docs/01_setup_local.md`: setup local, rutas base y validaciones.
 - `PROJECT_MEMORY.md`: memoria viva del proyecto.
 
 ## Regla para siguientes agentes
