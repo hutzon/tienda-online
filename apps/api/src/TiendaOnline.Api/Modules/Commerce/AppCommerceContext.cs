@@ -5,6 +5,7 @@ using TiendaOnline.Api.Modules.Orders.Entities;
 
 using TiendaOnline.Api.Modules.Checkout.Entities;
 using TiendaOnline.Api.Modules.Payments.Entities;
+using TiendaOnline.Api.Modules.Billing.Entities;
 
 namespace TiendaOnline.Api.Modules.Commerce;
 
@@ -24,6 +25,10 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
     public DbSet<CheckoutSession> CheckoutSessions => Set<CheckoutSession>();
 
     public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
+
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+
+    public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -143,6 +148,40 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
             entity.HasOne(payment => payment.Order)
                 .WithMany(order => order.PaymentAttempts)
                 .HasForeignKey(payment => payment.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.ToTable("invoices");
+            entity.HasKey(invoice => invoice.Id);
+            entity.Property(invoice => invoice.Uuid).HasMaxLength(100);
+            entity.Property(invoice => invoice.SatSignature).HasMaxLength(255);
+            entity.Property(invoice => invoice.Status).HasMaxLength(30).IsRequired();
+            entity.Property(invoice => invoice.Subtotal).HasPrecision(18, 2).IsRequired();
+            entity.Property(invoice => invoice.TaxAmount).HasPrecision(18, 2).IsRequired();
+            entity.Property(invoice => invoice.Total).HasPrecision(18, 2).IsRequired();
+            entity.Property(invoice => invoice.CreatedAt).IsRequired();
+            
+            entity.HasOne(invoice => invoice.Order)
+                .WithMany(order => order.Invoices)
+                .HasForeignKey(invoice => invoice.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvoiceLine>(entity =>
+        {
+            entity.ToTable("invoice_lines");
+            entity.HasKey(line => line.Id);
+            entity.Property(line => line.ProductName).HasMaxLength(180).IsRequired();
+            entity.Property(line => line.Sku).HasMaxLength(100).IsRequired();
+            entity.Property(line => line.Quantity).IsRequired();
+            entity.Property(line => line.UnitPrice).HasPrecision(18, 2).IsRequired();
+            entity.Property(line => line.LineTotal).HasPrecision(18, 2).IsRequired();
+
+            entity.HasOne(line => line.Invoice)
+                .WithMany(invoice => invoice.Lines)
+                .HasForeignKey(line => line.InvoiceId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

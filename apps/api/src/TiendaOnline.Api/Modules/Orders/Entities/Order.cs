@@ -1,4 +1,5 @@
 using TiendaOnline.Api.Modules.Payments.Entities;
+using TiendaOnline.Api.Modules.Billing.Entities;
 
 namespace TiendaOnline.Api.Modules.Orders.Entities;
 
@@ -31,4 +32,6 @@ public sealed class Order
     public List<OrderItem> Items { get; set; } = [];
 
     public List<PaymentAttempt>? PaymentAttempts { get; set; }
+
+    public List<Invoice>? Invoices { get; set; }
 }

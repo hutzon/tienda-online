@@ -11,6 +11,8 @@ using TiendaOnline.Api.Modules.Inventory;
 using TiendaOnline.Api.Modules.Orders;
 using TiendaOnline.Api.Modules.Checkout;
 using TiendaOnline.Api.Modules.Payments;
+using TiendaOnline.Api.Modules.Billing;
+using TiendaOnline.Api.Modules.Billing.Providers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
 builder.Services.AddIdentityPersistence(builder.Configuration, builder.Environment);
 builder.Services.AddCommercePersistence(builder.Configuration, builder.Environment);
+
+builder.Services.AddHttpClient<IFelProvider, MockFelProvider>();
 
 var app = builder.Build();
 
@@ -66,6 +70,7 @@ app.MapInventoryEndpoints();
 app.MapOrderEndpoints();
 app.MapCheckoutEndpoints();
 app.MapPaymentEndpoints();
+app.MapBillingEndpoints();
 
 app.Run();
 

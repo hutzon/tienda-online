@@ -96,6 +96,7 @@ public static class OrderEndpoints
                 .AsNoTracking()
                 .Include(order => order.Items)
                 .Include(order => order.PaymentAttempts)
+                .Include(order => order.Invoices)
                 .OrderByDescending(order => order.CreatedAt)
                 .Select(order => order.ToResponse())
                 .ToListAsync();
@@ -155,7 +156,8 @@ public sealed record OrderResponse(
     string? Notes,
     DateTimeOffset CreatedAt,
     List<OrderItemResponse> Items,
-    List<PaymentAttemptResponse>? PaymentAttempts);
+    List<PaymentAttemptResponse>? PaymentAttempts,
+    List<TiendaOnline.Api.Modules.Billing.InvoiceResponse>? Invoices = null);
 
 public sealed record PaymentAttemptResponse(
     Guid Id,
@@ -185,6 +187,8 @@ internal static class OrderMappings
             order.Status,
             order.CustomerName,
             order.CustomerEmail,
+            order.Phone,
+            order.Address,
             order.Currency,
             order.Subtotal,
             order.Total,
@@ -210,6 +214,9 @@ internal static class OrderMappings
                     p.ProviderTransactionId,
                     p.CreatedAt))
                 .OrderByDescending(p => p.CreatedAt)
+                .ToList(),
+            order.Invoices?
+                .Select(i => TiendaOnline.Api.Modules.Billing.BillingMappings.ToResponse(i))
                 .ToList());
     }
 }

@@ -100,6 +100,15 @@ Construir una tienda online profesional con:
 - Se construyó `CheckoutPage` (`app/checkout/[sessionId]/page.tsx`) con 3 pasos (información, método de pago, simulación).
 - Se expandió `OrdersView` en `web-admin` para mostrar los datos de contacto y el estado de la transacción de pago de las órdenes.
 
+### Tarea 8: Flujo de Facturación y Mock FEL/SAT
+
+- Se separó conceptualmente la "Orden" del "Documento Fiscal" mediante las entidades `Invoice` e `InvoiceLine`.
+- Se introdujo una abstracción `IFelProvider` para facilitar el reemplazo futuro por un certificador real.
+- Se implementó `MockFelProvider` usando `HttpClient` y autenticación base para interactuar con el servicio local `FelSatMock`.
+- Se creó `BillingEndpoints` con soporte para emisión asíncrona o manual y consulta.
+- Se actualizaron las interfaces de `web-admin` para permitir al administrador "Emitir Factura (Mock)" sobre órdenes confirmadas, visualizando su estado y UUID.
+- Se actualizó el frontend público en `web-store/checkout/[sessionId]/success` para informar del estado de la facturación al cliente.
+
 ## Estructura relevante actual
 
 ```text
@@ -190,7 +199,10 @@ apps/web-store/
 - `apps/web-store/app/checkout/[sessionId]/success/page.tsx`
 - `apps/api/src/TiendaOnline.Api/Modules/Checkout/CheckoutEndpoints.cs`
 - `apps/api/src/TiendaOnline.Api/Modules/Payments/PaymentEndpoints.cs`
-- `docs/handoffs/2026-04-25_checkout_pagos.md`
+- `apps/api/src/TiendaOnline.Api/Modules/Billing/BillingEndpoints.cs`
+- `apps/api/src/TiendaOnline.Api/Modules/Billing/Providers/IFelProvider.cs`
+- `apps/api/src/TiendaOnline.Api/Modules/Billing/Providers/MockFelProvider.cs`
+- `docs/handoffs/2026-04-25_mock_fel_facturacion.md`
 - `PROJECT_MEMORY.md`
 
 ## Validaciones ejecutadas

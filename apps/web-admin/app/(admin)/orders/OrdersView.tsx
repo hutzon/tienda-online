@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchAdminOrders, OrderResponse } from '@/lib/api/commerce';
+import { fetchAdminOrders, emitInvoice, OrderResponse } from '@/lib/api/commerce';
 
 export default function OrdersView() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -16,6 +16,17 @@ export default function OrdersView() {
     } catch (err: any) {
       setError(err.message || 'Error cargando pedidos');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmitInvoice = async (orderId: string) => {
+    try {
+      setLoading(true);
+      await emitInvoice(orderId);
+      await loadOrders(); // Recargar pedidos para ver la factura
+    } catch (err: any) {
+      alert(`Error emitiendo factura: ${err.message || 'Desconocido'}`);
       setLoading(false);
     }
   };
@@ -43,6 +54,7 @@ export default function OrdersView() {
             <th>Items</th>
             <th>Método Pago</th>
             <th>Estado Pago</th>
+            <th>Facturación</th>
           </tr>
         </thead>
         <tbody>
@@ -77,11 +89,40 @@ export default function OrdersView() {
                     </span>
                   ) : '-'}
                 </td>
+                <td>
+                  {order.invoices && order.invoices.length > 0 ? (
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <span style={{ 
+                        padding: '0.25rem 0.5rem', 
+                        borderRadius: '4px', 
+                        background: order.invoices[0].status === 'Emitted' ? '#e3f2fd' : '#fff3e0',
+                        color: order.invoices[0].status === 'Emitted' ? '#1565c0' : '#e65100',
+                        display: 'inline-block',
+                        marginBottom: '0.25rem'
+                      }}>
+                        {order.invoices[0].status}
+                      </span>
+                      {order.invoices[0].uuid && <div style={{ fontSize: '0.75rem', color: '#666' }}>UUID: {order.invoices[0].uuid.substring(0, 8)}...</div>}
+                    </div>
+                  ) : (
+                    order.status === 'Confirmed' ? (
+                      <button 
+                        onClick={() => handleEmitInvoice(order.id)} 
+                        disabled={loading}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: '#333', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Emitir Factura
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.85rem', color: '#999' }}>No elegible</span>
+                    )
+                  )}
+                </td>
               </tr>
             );
           })}
           {orders.length === 0 && (
-            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '1rem' }}>No hay pedidos registrados.</td></tr>
+            <tr><td colSpan={10} style={{ textAlign: 'center', padding: '1rem' }}>No hay pedidos registrados.</td></tr>
           )}
         </tbody>
       </table>

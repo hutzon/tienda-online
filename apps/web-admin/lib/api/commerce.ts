@@ -52,6 +52,20 @@ export interface OrderResponse {
   createdAt: string;
   items: any[];
   paymentAttempts?: any[];
+  invoices?: InvoiceResponse[];
+}
+
+export interface InvoiceResponse {
+  id: string;
+  orderId: string;
+  uuid?: string;
+  satSignature?: string;
+  status: string;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  createdAt: string;
+  emittedAt?: string;
 }
 
 export async function fetchAdminProducts(): Promise<AdminCatalogProductSummary[]> {
@@ -88,4 +102,11 @@ export async function updateAdminStock(id: string, stockOnHand: number): Promise
 
 export async function fetchAdminOrders(): Promise<OrderResponse[]> {
   return apiFetch<OrderResponse[]>('/api/v1/admin/orders/', { authenticated: true });
+}
+
+export async function emitInvoice(orderId: string): Promise<InvoiceResponse> {
+  return apiFetch<InvoiceResponse>(`/api/v1/admin/orders/${orderId}/invoices`, {
+    method: 'POST',
+    authenticated: true,
+  });
 }

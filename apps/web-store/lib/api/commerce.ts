@@ -53,6 +53,20 @@ export interface OrderResponse {
   createdAt: string;
   items: any[];
   paymentAttempts?: any[];
+  invoices?: InvoiceResponse[];
+}
+
+export interface InvoiceResponse {
+  id: string;
+  orderId: string;
+  uuid?: string;
+  satSignature?: string;
+  status: string;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  createdAt: string;
+  emittedAt?: string;
 }
 
 export interface CheckoutSessionResponse {

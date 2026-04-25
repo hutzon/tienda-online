@@ -53,6 +53,16 @@ export default function CheckoutSuccessPage({ params }: { params: { sessionId: s
             <p><strong>Enviando a:</strong> {order.customerName}</p>
             <p><strong>Dirección:</strong> {order.address}</p>
             <p><strong>Contacto:</strong> {order.customerEmail} / {order.phone}</p>
+            <hr style={{ border: 'none', borderTop: '1px solid #ddd', margin: '1rem 0' }} />
+            <h4>Documento Fiscal</h4>
+            {order.invoices && order.invoices.length > 0 ? (
+              <div style={{ marginTop: '0.5rem' }}>
+                <p><strong>Estado:</strong> {order.invoices[0].status}</p>
+                {order.invoices[0].uuid && <p><strong>UUID:</strong> {order.invoices[0].uuid}</p>}
+              </div>
+            ) : (
+              <p style={{ marginTop: '0.5rem', color: '#666' }}>Tu documento de facturación está pendiente de emisión.</p>
+            )}
           </div>
 
           <div style={{ marginTop: '2rem' }}>

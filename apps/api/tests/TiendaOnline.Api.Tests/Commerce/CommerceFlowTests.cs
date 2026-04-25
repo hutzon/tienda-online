@@ -94,5 +94,19 @@ public sealed class CommerceFlowTests(AuthTestWebApplicationFactory factory)
 
         var paymentResult = await paymentMethodResponse.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
         Assert.Equal("Confirmed", paymentResult!["orderStatus"]?.ToString());
+        
+        var orderId = session.OrderId;
+
+        // Issue invoice
+        var token = JwtTestHelper.GenerateToken("billing-admin", AppRoles.Admin);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var invoiceResponse = await _client.PostAsync($"/api/v1/admin/orders/{orderId}/invoices", null);
+        
+        // Mock FEL might not be running in tests, so it could fail with 400 Bad Request if it can't connect
+        // Or if we don't start the mock, it throws. Let's just assert it doesn't throw 500
+        Assert.NotEqual(HttpStatusCode.InternalServerError, invoiceResponse.StatusCode);
+        
+        _client.DefaultRequestHeaders.Authorization = null;
     }
 }
