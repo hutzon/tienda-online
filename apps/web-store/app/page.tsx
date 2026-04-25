@@ -4,9 +4,8 @@ import { ProductCard } from '@/components/storefront/ProductCard';
 import { StorefrontContainer } from '@/components/storefront/StorefrontContainer';
 import { getFeaturedProducts } from '@/lib/catalog';
 
-const featuredProducts = getFeaturedProducts();
-
 export default async function HomePage() {
+  const featuredProducts = await getFeaturedProducts();
   return (
     <>
       <section className="hero-section">

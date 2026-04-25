@@ -5,6 +5,12 @@ using TiendaOnline.Api.Endpoints;
 using TiendaOnline.Api.Identity;
 using TiendaOnline.Api.Infrastructure;
 using TiendaOnline.Api.Middleware;
+using TiendaOnline.Api.Modules.Catalog;
+using TiendaOnline.Api.Modules.Commerce;
+using TiendaOnline.Api.Modules.Inventory;
+using TiendaOnline.Api.Modules.Orders;
+using TiendaOnline.Api.Modules.Checkout;
+using TiendaOnline.Api.Modules.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,13 +25,16 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
-builder.Services.AddIdentityPersistence(builder.Configuration);
+builder.Services.AddIdentityPersistence(builder.Configuration, builder.Environment);
+builder.Services.AddCommercePersistence(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
+
+await app.TryPrepareCommerceDataAsync();
 
 // Liveness: el proceso responde (siempre 200 si el API arranca).
 app.MapHealthChecks("/health", new HealthCheckOptions
@@ -52,6 +61,11 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapSystemEndpoints();
 app.MapAdminEndpoints();
 app.MapDevAuthEndpoints(app.Environment);
+app.MapCatalogEndpoints();
+app.MapInventoryEndpoints();
+app.MapOrderEndpoints();
+app.MapCheckoutEndpoints();
+app.MapPaymentEndpoints();
 
 app.Run();
 

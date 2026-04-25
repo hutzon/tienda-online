@@ -1,21 +1,24 @@
 import Link from 'next/link';
 import { StorefrontContainer } from '@/components/storefront/StorefrontContainer';
+import { CartOrderBase } from '@/components/storefront/CartOrderBase';
+import { getAllProducts } from '@/lib/catalog';
 
 export const metadata = {
   title: 'Carrito',
 };
 
-export default function CartPage() {
+export default async function CartPage() {
+  const products = await getAllProducts();
+
   return (
     <StorefrontContainer className="section-stack">
       <section className="section-shell">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Carrito placeholder</span>
-            <h1>Carrito vacío por diseño en esta fase</h1>
+            <span className="eyebrow">Carrito base</span>
+            <h1>Simulación de carrito en esta fase</h1>
             <p className="section-copy">
-              Aquí irá el resumen real de artículos, cálculo de totales, promos y
-              validaciones previas al checkout.
+              Aquí puedes crear un pedido inicial conectando el catálogo real con el módulo de pedidos del backend.
             </p>
           </div>
         </div>
@@ -23,10 +26,12 @@ export default function CartPage() {
         <div className="empty-state">
           <h2>Base lista para el flujo real</h2>
           <p>
-            El carrito todavía no persiste estado ni llama a inventario. Esta vista
-            existe para validar navegación pública y continuidad del storefront.
+            El carrito todavía no persiste estado múltiple. Utiliza el formulario abajo para crear un pedido de prueba.
           </p>
-          <div className="hero-actions">
+
+          <CartOrderBase products={products} />
+
+          <div className="hero-actions" style={{ marginTop: '2rem' }}>
             <Link href="/catalog" className="btn-primary">
               Ir al catálogo
             </Link>

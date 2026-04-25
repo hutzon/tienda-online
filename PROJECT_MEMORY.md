@@ -84,6 +84,22 @@ Construir una tienda online profesional con:
 - La home muestra estado de conexión hacia `/api/v1/system/info` y datos del backend cuando la API está disponible.
 - Se dejó la estructura lista para crecer sin mezclar storefront y admin.
 
+### Tarea 6: Integración Real de Catálogo, Inventario y Pedidos
+
+- Se conectó `web-store` a los endpoints reales de catálogo `/api/v1/catalog/products` reemplazando los placeholders.
+- Se implementó un flujo base de creación de pedidos en el carrito `web-store/cart` hacia `/api/v1/orders`.
+- Se implementaron las pantallas funcionales en `web-admin` para listar/crear productos, actualizar inventario y listar pedidos consumiendo `/api/v1/admin/*`.
+- Se corrigieron errores de navegación nullable en EF Core 8+ (`Product.Category`, `Product.OrderItems`, etc.) que fallaban al guardar entidades desconectadas.
+- Se aseguraron los flujos y tests de integración en `TiendaOnline.Api.Tests`.
+
+### Tarea 7: Flujo de Checkout y Pagos Base
+
+- Se estructuró el dominio separando `CheckoutSession`, `PaymentAttempt` y `Order` en el backend.
+- Se implementaron flujos de simulación de pago online y contra entrega.
+- Se reestructuró el carrito de `web-store` para invocar la creación de sesión y fluir hacia el checkout interactivo.
+- Se construyó `CheckoutPage` (`app/checkout/[sessionId]/page.tsx`) con 3 pasos (información, método de pago, simulación).
+- Se expandió `OrdersView` en `web-admin` para mostrar los datos de contacto y el estado de la transacción de pago de las órdenes.
+
 ## Estructura relevante actual
 
 ```text
@@ -170,6 +186,11 @@ apps/web-store/
 - `docs/01_setup_local.md`
 - `README.md`
 - `docs/handoffs/2026-04-25_storefront_base.md`
+- `apps/web-store/app/checkout/[sessionId]/page.tsx`
+- `apps/web-store/app/checkout/[sessionId]/success/page.tsx`
+- `apps/api/src/TiendaOnline.Api/Modules/Checkout/CheckoutEndpoints.cs`
+- `apps/api/src/TiendaOnline.Api/Modules/Payments/PaymentEndpoints.cs`
+- `docs/handoffs/2026-04-25_checkout_pagos.md`
 - `PROJECT_MEMORY.md`
 
 ## Validaciones ejecutadas
@@ -197,4 +218,4 @@ apps/web-store/
 - Aplicar la migración SQL de identidad antes de trabajar persistencia real.
 - Agregar OpenAPI cuando aparezcan endpoints de negocio.
 - Introducir autenticación real de clientes y hardening de cookies en fases posteriores.
-- Mantener fuera del alcance por ahora catálogo real, carrito real, checkout, pagos y FEL real.
+- Mantener fuera del alcance por ahora logística real, promociones, y FEL real.

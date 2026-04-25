@@ -1,13 +1,7 @@
-import PlaceholderPage from '@/components/admin/PlaceholderPage';
+import InventoryView from './InventoryView';
 
 export const metadata = { title: 'Inventario | TiendaOnline Admin' };
 
 export default function InventoryPage() {
-  return (
-    <PlaceholderPage
-      title="Inventario"
-      description="Control de stock, movimientos y ajustes de inventario."
-      module="Inventory"
-    />
-  );
+  return <InventoryView />;
 }

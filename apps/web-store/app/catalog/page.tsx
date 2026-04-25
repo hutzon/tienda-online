@@ -6,9 +6,8 @@ export const metadata = {
   title: 'Catálogo',
 };
 
-const products = getAllProducts();
-
-export default function CatalogPage() {
+export default async function CatalogPage() {
+  const products = await getAllProducts();
   return (
     <StorefrontContainer className="section-stack">
       <section className="section-shell">

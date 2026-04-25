@@ -2,6 +2,8 @@
 -- Description: Crea el schema 'identity' y la tabla de usuarios base.
 -- Apply: psql -U tienda_online -d tienda_online -f 001_create_identity_tables.sql
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE SCHEMA IF NOT EXISTS identity;
 
 CREATE TABLE IF NOT EXISTS identity.users (

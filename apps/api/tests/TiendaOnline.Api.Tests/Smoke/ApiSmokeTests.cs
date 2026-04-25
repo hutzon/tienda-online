@@ -1,11 +1,11 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
+using TiendaOnline.Api.Tests.Helpers;
 using Xunit;
 
 namespace TiendaOnline.Api.Tests.Smoke;
 
-public class ApiSmokeTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public class ApiSmokeTests(AuthTestWebApplicationFactory factory)
+    : IClassFixture<AuthTestWebApplicationFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 
@@ -34,5 +34,16 @@ public class ApiSmokeTests(WebApplicationFactory<Program> factory)
         Assert.Contains("\"version\"", body);
         Assert.Contains("\"environment\"", body);
         Assert.Contains("\"timestamp\"", body);
+    }
+
+    [Fact]
+    public async Task PublicCatalog_ReturnsSeededProducts()
+    {
+        var response = await _client.GetAsync("/api/v1/catalog/products");
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("integration-office-kit", body);
+        Assert.Contains("Integration Desk Light", body);
     }
 }

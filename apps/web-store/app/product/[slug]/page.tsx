@@ -11,7 +11,7 @@ interface ProductPageProps {
 
 export async function generateMetadata({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     return {
@@ -21,13 +21,13 @@ export async function generateMetadata({ params }: ProductPageProps) {
 
   return {
     title: product.name,
-    description: product.description,
+    description: product.summary,
   };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     notFound();
@@ -37,15 +37,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <StorefrontContainer className="section-stack">
       <section className="product-hero">
         <div className="product-visual">
-          <span className="product-badge">{product.badge}</span>
+          <span className="product-badge">{product.inStock ? 'Disponible' : 'Agotado'}</span>
           <h1>{product.name}</h1>
-          <p>{product.description}</p>
+          <p>{product.summary}</p>
+          <div style={{ marginTop: '1rem' }}>
+            <strong>Descripción técnica:</strong>
+            <p>{product.description}</p>
+          </div>
         </div>
 
         <aside className="product-panel">
-          <p className="product-price">{product.priceLabel}</p>
-          <p className="product-meta">SKU temporal: {product.slug.toUpperCase()}</p>
-          <p className="product-meta">Entrega objetivo: {product.deliveryWindow}</p>
+          <p className="product-price">{product.currency} {product.price.toFixed(2)}</p>
+          <p className="product-meta">SKU: {product.sku}</p>
+          <p className="product-meta">Categoría: {product.categoryName}</p>
 
           <div className="product-actions">
             <Link href="/cart" className="btn-primary">
