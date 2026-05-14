@@ -6,6 +6,7 @@ const PROTECTED_PREFIXES = [
   '/catalog',
   '/inventory',
   '/orders',
+  '/billing',
   '/customers',
   '/settings',
 ];

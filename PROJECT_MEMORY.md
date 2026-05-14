@@ -237,6 +237,19 @@ apps/web-store/
 - `npm run start -w @tienda-online/web-store` → `/`, `/catalog`, `/product/starter-office-kit`, `/cart` y `/account` responden 200.
 - Home de `web-store` validada consumiendo datos reales de `/api/v1/system/info`.
 
+### Tarea 10: Pruebas Locales End-to-End y Fixes Post-Verificación
+
+- Levantado backend con `Database__UseInMemoryForTesting=true` (env var) para desarrollo sin Docker.
+- Levantado mock FEL/SAT en puerto 5153 (`dotnet run --urls http://localhost:5153`).
+- Levantados web-store (3000) y web-admin (3001) en modo dev.
+- Verificado flujo completo: catálogo → checkout CashOnDelivery → factura emitida.
+- Verificado flujo completo: checkout OnlineSimulated → pago simulado exitoso → factura emitida.
+- Verificado flujo login admin: dev token → JWT → admin ping → admin orders.
+- Verificado correlación ID (`X-Correlation-Id`) en todos los responses del backend.
+- Fix detectado: el Sidebar tenía link `/billing` sin página existente → creada `billing/page.tsx`.
+- Fix detectado: ruta `/billing` no estaba en `PROTECTED_PREFIXES` de `proxy.ts` → agregada.
+- Todos los tests y typechecks validados post-fix (15/15, builds limpios).
+
 ### Tarea 9: Hardening, Observabilidad, QA y Mejora Visual
 
 - Verificado que `proxy.ts` en Next.js 16 es la convención correcta de middleware (no `middleware.ts`).
@@ -249,6 +262,13 @@ apps/web-store/
 - Actualizado `Sidebar.tsx` con iconos específicos por sección y entrada de Facturación.
 - Mejorado `ProductCard.tsx` con placeholder visual accesible (SVG + aria-label).
 - Actualizado `PublicHeader.tsx` con iconos en navegación.
+
+## Decisiones de arranque local (sin Docker)
+
+- Para correr el backend sin Docker: `Database__UseInMemoryForTesting=true ASPNETCORE_ENVIRONMENT=Development dotnet run --project apps/api/...`
+- Para correr el mock FEL en el puerto correcto: `dotnet run --project mocks/fel-sat-mock/FelSatMock.Api.csproj --urls http://localhost:5153`
+- El flag `UseInMemoryForTesting` está soportado en ambos contextos: `AppCommerceContext` y `AppIdentityContext`.
+- Los datos del InMemory DB se pierden al reiniciar el backend.
 
 ## Riesgos o pendientes
 
@@ -263,7 +283,7 @@ apps/web-store/
 
 ## Siguientes pasos recomendados
 
-- Crear `app/(admin)/billing/page.tsx` para dar destino a la entrada de Facturación en Sidebar.
+- `app/(admin)/billing/page.tsx` ya existe como placeholder — implementar vista real de facturas cuando sea necesario.
 - Hardening de cookie `admin_token` a `httpOnly` vía API route cuando se acerque a producción.
 - Aplicar migraciones SQL antes de trabajar con persistencia real.
 - Agregar OpenAPI cuando el catálogo de endpoints estabilice.
