@@ -22,6 +22,12 @@ public static class DevAuthEndpoints
         {
             var options = authOptions.Value;
 
+            if (string.IsNullOrWhiteSpace(request.Username))
+                return Results.BadRequest(new { message = "Username is required." });
+
+            if (string.IsNullOrWhiteSpace(request.Role))
+                return Results.BadRequest(new { message = "Role is required." });
+
             if (string.IsNullOrWhiteSpace(options.SecretKey))
                 return Results.Problem("Auth:SecretKey is not configured.", statusCode: 500);
 

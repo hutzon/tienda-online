@@ -3,19 +3,22 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { PackageIcon, ShoppingCartIcon, BoxIcon, FileTextIcon, UsersIcon, SettingsIcon, LayoutDashboardIcon } from './Icons';
+
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: '◈' },
-  { href: '/catalog', label: 'Catálogo', icon: '◫' },
-  { href: '/inventory', label: 'Inventario', icon: '◧' },
-  { href: '/orders', label: 'Pedidos', icon: '◩' },
-  { href: '/customers', label: 'Clientes', icon: '◬' },
-  { href: '/settings', label: 'Configuración', icon: '◎' },
+  { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboardIcon className="w-5 h-5" /> },
+  { href: '/catalog', label: 'Catálogo', icon: <PackageIcon className="w-5 h-5" /> },
+  { href: '/inventory', label: 'Inventario', icon: <BoxIcon className="w-5 h-5" /> },
+  { href: '/orders', label: 'Pedidos', icon: <ShoppingCartIcon className="w-5 h-5" /> },
+  { href: '/billing', label: 'Facturación', icon: <FileTextIcon className="w-5 h-5" /> },
+  { href: '/customers', label: 'Clientes', icon: <UsersIcon className="w-5 h-5" /> },
+  { href: '/settings', label: 'Configuración', icon: <SettingsIcon className="w-5 h-5" /> },
 ];
 
 export default function Sidebar() {

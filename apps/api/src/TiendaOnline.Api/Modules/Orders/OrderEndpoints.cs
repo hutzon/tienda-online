@@ -15,6 +15,7 @@ public static class OrderEndpoints
         publicGroup.MapPost("/", async (
             CreateOrderRequest request,
             AppCommerceContext dbContext,
+            ILoggerFactory loggerFactory,
             CancellationToken cancellationToken) =>
         {
             var validationErrors = ValidateOrderRequest(request);
@@ -82,6 +83,10 @@ public static class OrderEndpoints
             dbContext.Orders.Add(order);
             await dbContext.SaveChangesAsync(cancellationToken);
 
+            var logger = loggerFactory.CreateLogger("OrderEndpoints");
+            logger.LogInformation("Order created successfully. OrderId={OrderId}, OrderNumber={OrderNumber}, Total={Total}", 
+                order.Id, order.OrderNumber, order.Total);
+
             return Results.Created($"/api/v1/orders/{order.Id}", order.ToResponse());
         })
         .WithName("CreateOrder");
@@ -115,9 +120,9 @@ public static class OrderEndpoints
             errors["customerName"] = ["Customer name is required."];
         }
 
-        if (string.IsNullOrWhiteSpace(request.CustomerEmail) || !request.CustomerEmail.Contains('@'))
+        if (string.IsNullOrWhiteSpace(request.CustomerEmail) || !request.CustomerEmail.Contains('@') || request.CustomerEmail.Length > 254)
         {
-            errors["customerEmail"] = ["A valid customer email is required."];
+            errors["customerEmail"] = ["A valid customer email is required (max 254 chars)."];
         }
 
         if (request.Items.Count == 0)

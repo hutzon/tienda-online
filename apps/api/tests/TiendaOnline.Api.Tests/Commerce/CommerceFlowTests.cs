@@ -109,4 +109,78 @@ public sealed class CommerceFlowTests(AuthTestWebApplicationFactory factory)
         
         _client.DefaultRequestHeaders.Authorization = null;
     }
+
+    [Fact]
+    public async Task CreateOrder_WithInvalidQuantity_ReturnsBadRequest()
+    {
+        var createSessionRequest = new TiendaOnline.Api.Modules.Checkout.CreateCheckoutSessionRequest(
+            [new CreateOrderItemRequest(Guid.NewGuid(), -1)]);
+
+        var sessionResponse = await _client.PostAsJsonAsync("/api/v1/checkout/sessions", createSessionRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, sessionResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminEndpoints_WithoutToken_ReturnsUnauthorized()
+    {
+        var response = await _client.GetAsync("/api/v1/admin/orders");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Checkout_OnlinePayment_SimulateSuccess_ConfirmsOrder()
+    {
+        var products = await _client.GetFromJsonAsync<List<PublicCatalogProductSummary>>("/api/v1/catalog/products");
+        Assert.NotNull(products);
+
+        var product = products!.First(p => p.Slug == "integration-office-kit");
+
+        var sessionResponse = await _client.PostAsJsonAsync("/api/v1/checkout/sessions",
+            new TiendaOnline.Api.Modules.Checkout.CreateCheckoutSessionRequest(
+                [new CreateOrderItemRequest(product.Id, 1)]));
+        sessionResponse.EnsureSuccessStatusCode();
+
+        var session = await sessionResponse.Content
+            .ReadFromJsonAsync<TiendaOnline.Api.Modules.Checkout.CheckoutSessionResponse>();
+        Assert.NotNull(session);
+
+        var customerResponse = await _client.PutAsJsonAsync(
+            $"/api/v1/checkout/sessions/{session!.Id}/customer",
+            new TiendaOnline.Api.Modules.Checkout.UpdateCustomerRequest(
+                "Pago Online Test", "pago.online@example.com", "55559999", "Zona 10, Guatemala"));
+        customerResponse.EnsureSuccessStatusCode();
+
+        var methodResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/checkout/sessions/{session.Id}/payment-method",
+            new TiendaOnline.Api.Modules.Checkout.SelectPaymentMethodRequest("OnlineSimulated"));
+        methodResponse.EnsureSuccessStatusCode();
+
+        var methodResult = await methodResponse.Content
+            .ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
+        Assert.Equal("PendingPayment", methodResult!["orderStatus"]?.ToString());
+
+        var paymentAttemptId = Guid.Parse(methodResult["paymentAttemptId"]!.ToString());
+
+        var simulateResponse = await _client.PostAsJsonAsync("/api/v1/payments/simulate",
+            new TiendaOnline.Api.Modules.Payments.SimulatePaymentRequest(paymentAttemptId, true));
+        simulateResponse.EnsureSuccessStatusCode();
+
+        var simulateResult = await simulateResponse.Content
+            .ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
+        Assert.Equal("Paid", simulateResult!["paymentStatus"]?.ToString());
+        Assert.Equal("Confirmed", simulateResult["orderStatus"]?.ToString());
+    }
+
+    [Fact]
+    public async Task CheckoutSession_WithZeroQuantity_ReturnsBadRequest()
+    {
+        var products = await _client.GetFromJsonAsync<List<PublicCatalogProductSummary>>("/api/v1/catalog/products");
+        Assert.NotNull(products);
+        var product = products!.First();
+
+        var sessionResponse = await _client.PostAsJsonAsync("/api/v1/checkout/sessions",
+            new TiendaOnline.Api.Modules.Checkout.CreateCheckoutSessionRequest(
+                [new CreateOrderItemRequest(product.Id, 0)]));
+        Assert.Equal(HttpStatusCode.BadRequest, sessionResponse.StatusCode);
+    }
 }

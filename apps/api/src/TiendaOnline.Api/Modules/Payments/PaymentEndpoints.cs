@@ -14,6 +14,7 @@ public static class PaymentEndpoints
         group.MapPost("/simulate", async (
             SimulatePaymentRequest request,
             AppCommerceContext dbContext,
+            ILoggerFactory loggerFactory,
             CancellationToken cancellationToken) =>
         {
             var paymentAttempt = await dbContext.PaymentAttempts
@@ -29,16 +30,20 @@ public static class PaymentEndpoints
 
             var order = paymentAttempt.Order!;
             paymentAttempt.UpdatedAt = DateTimeOffset.UtcNow;
+            
+            var logger = loggerFactory.CreateLogger("PaymentEndpoints");
 
             if (request.Success)
             {
                 paymentAttempt.Status = PaymentStatuses.Paid;
                 paymentAttempt.ProviderTransactionId = $"sim_{Guid.NewGuid():N}";
                 order.Status = OrderStatuses.Confirmed;
+                logger.LogInformation("Payment simulation Succeeded for AttemptId={AttemptId}, OrderId={OrderId}", request.PaymentAttemptId, order.Id);
             }
             else
             {
                 paymentAttempt.Status = PaymentStatuses.Failed;
+                logger.LogWarning("Payment simulation Failed for AttemptId={AttemptId}, OrderId={OrderId}", request.PaymentAttemptId, order.Id);
                 // Leave order in PendingPayment so user can try again
             }
 

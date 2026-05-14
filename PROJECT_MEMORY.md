@@ -172,7 +172,28 @@ apps/web-store/
 - `GET /api/v1/admin/ping` → requiere JWT con rol `Admin`.
 - `POST /api/v1/auth/dev/token` → genera JWT de desarrollo solo en `Development`.
 
+## Decisiones vigentes adicionales
+
+- `proxy.ts` en Next.js 16 es la convención de middleware (equivale a `middleware.ts` de versiones anteriores). No crear `middleware.ts`.
+- Todos los íconos son SVG inline propios sin dependencias externas — fácil de reemplazar.
+- Placeholders visuales en ProductCard son temporales y no representan branding final.
+- El middleware de correlación (`X-Correlation-Id`) es una convención de trazabilidad mínima en el backend.
+
 ## Archivos creados o modificados en la tarea actual
+
+- `apps/api/src/TiendaOnline.Api/Modules/Checkout/CheckoutEndpoints.cs` — validaciones qty y customer
+- `apps/api/src/TiendaOnline.Api/Middleware/GlobalExceptionHandler.cs` — IWebHostEnvironment + correlationId
+- `apps/api/src/TiendaOnline.Api/Program.cs` — correlation ID middleware + request logging
+- `apps/api/tests/TiendaOnline.Api.Tests/Commerce/CommerceFlowTests.cs` — 2 tests nuevos
+- `apps/web-admin/components/admin/Icons.tsx` — nuevo (8 iconos SVG)
+- `apps/web-admin/components/admin/Sidebar.tsx` — iconos actualizados + entrada facturación
+- `apps/web-store/components/storefront/Icons.tsx` — nuevo (4 iconos SVG)
+- `apps/web-store/components/storefront/PublicHeader.tsx` — iconos en navegación
+- `apps/web-store/components/storefront/ProductCard.tsx` — placeholder visual mejorado
+- `docs/handoffs/2026-05-13_hardening_observabilidad_qa.md` — handoff completo
+- `PROJECT_MEMORY.md` — actualizado
+
+## Archivos creados o modificados en tareas anteriores
 
 - `apps/api/src/TiendaOnline.Api/Properties/launchSettings.json`
 - `apps/web-admin/app/login/LoginView.tsx`
@@ -216,18 +237,36 @@ apps/web-store/
 - `npm run start -w @tienda-online/web-store` → `/`, `/catalog`, `/product/starter-office-kit`, `/cart` y `/account` responden 200.
 - Home de `web-store` validada consumiendo datos reales de `/api/v1/system/info`.
 
+### Tarea 9: Hardening, Observabilidad, QA y Mejora Visual
+
+- Verificado que `proxy.ts` en Next.js 16 es la convención correcta de middleware (no `middleware.ts`).
+- Confirmado que el login admin funciona correctamente; el "Failed to fetch" histórico era por backend no corriendo.
+- Agregada validación de cantidad > 0 y validación completa de datos de cliente en `CheckoutEndpoints.cs`.
+- Mejorado `GlobalExceptionHandler.cs` para usar `IWebHostEnvironment` vía DI y propagar `correlationId`.
+- Agregado middleware de correlación en `Program.cs`: genera/propaga `X-Correlation-Id` y loguea cada request con método, ruta, status y duración.
+- Agregados 2 tests nuevos: flujo de pago online simulado y validación de cantidad cero. Total: 15/15.
+- Creados archivos de íconos SVG inline en `web-admin` y `web-store` (sin dependencias externas).
+- Actualizado `Sidebar.tsx` con iconos específicos por sección y entrada de Facturación.
+- Mejorado `ProductCard.tsx` con placeholder visual accesible (SVG + aria-label).
+- Actualizado `PublicHeader.tsx` con iconos en navegación.
+
 ## Riesgos o pendientes
 
 - `/health/ready` depende de PostgreSQL y Redis activos; si Docker Desktop no está iniciado, no puede validarse.
 - El warning `baseline-browser-mapping` aparece en builds web, pero no bloquea el resultado.
+- 12 warnings CS8602 (nullable references) pre-existentes en CatalogEndpoints/InventoryEndpoints/OrderEndpoints — no bloqueantes.
 - OpenAPI sigue diferido.
-- La migración SQL `infra/db/migrations/001_create_identity_tables.sql` sigue siendo manual.
-- La cookie `admin_token` sigue siendo de desarrollo y no es `httpOnly`.
+- Las migraciones SQL en `infra/db/migrations/` siguen siendo manuales.
+- La cookie `admin_token` sigue siendo JavaScript-accessible (no `httpOnly`) — aceptable en Development.
+- La entrada `/billing` del Sidebar admin no tiene página propia aún — pendiente para siguiente ciclo.
+- Los placeholders visuales deben reemplazarse con assets reales cuando haya identidad de marca.
 
 ## Siguientes pasos recomendados
 
-- Conectar `web-store` a contratos compartidos cuando exista el primer módulo real de catálogo.
-- Aplicar la migración SQL de identidad antes de trabajar persistencia real.
-- Agregar OpenAPI cuando aparezcan endpoints de negocio.
+- Crear `app/(admin)/billing/page.tsx` para dar destino a la entrada de Facturación en Sidebar.
+- Hardening de cookie `admin_token` a `httpOnly` vía API route cuando se acerque a producción.
+- Aplicar migraciones SQL antes de trabajar con persistencia real.
+- Agregar OpenAPI cuando el catálogo de endpoints estabilice.
 - Introducir autenticación real de clientes y hardening de cookies en fases posteriores.
-- Mantener fuera del alcance por ahora logística real, promociones, y FEL real.
+- Planificar transición de `/auth/dev/token` a autenticación real con usuarios en DB.
+- Mantener fuera del alcance pagos reales, SAT/FEL real y branding final.

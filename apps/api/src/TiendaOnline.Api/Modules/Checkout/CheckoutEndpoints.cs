@@ -24,6 +24,11 @@ public static class CheckoutEndpoints
                 return Results.BadRequest(new { message = "Cart is empty." });
             }
 
+            if (request.Items.Any(item => item.Quantity <= 0))
+            {
+                return Results.BadRequest(new { message = "Each item quantity must be greater than zero." });
+            }
+
             var productIds = request.Items.Select(item => item.ProductId).Distinct().ToList();
             var products = await dbContext.Products
                 .AsNoTracking()
@@ -116,9 +121,13 @@ public static class CheckoutEndpoints
             if (session.Status != CheckoutSessionStatuses.Active)
                 return Results.BadRequest(new { message = "Session is no longer active." });
 
+            var customerErrors = ValidateCustomerRequest(request);
+            if (customerErrors is not null)
+                return Results.ValidationProblem(customerErrors);
+
             var order = session.Order!;
             order.CustomerName = request.CustomerName.Trim();
-            order.CustomerEmail = request.CustomerEmail.Trim();
+            order.CustomerEmail = request.CustomerEmail.Trim().ToLowerInvariant();
             order.Phone = request.Phone.Trim();
             order.Address = request.Address.Trim();
 
@@ -179,6 +188,27 @@ public static class CheckoutEndpoints
             return Results.Ok(new { PaymentAttemptId = paymentAttempt.Id, OrderStatus = order.Status });
         })
         .WithName("SelectPaymentMethod");
+    }
+
+    private static Dictionary<string, string[]>? ValidateCustomerRequest(UpdateCustomerRequest request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.CustomerName))
+            errors["customerName"] = ["Customer name is required."];
+
+        if (string.IsNullOrWhiteSpace(request.CustomerEmail)
+            || !request.CustomerEmail.Contains('@')
+            || request.CustomerEmail.Length > 254)
+            errors["customerEmail"] = ["A valid customer email is required (max 254 chars)."];
+
+        if (string.IsNullOrWhiteSpace(request.Phone))
+            errors["phone"] = ["Phone is required."];
+
+        if (string.IsNullOrWhiteSpace(request.Address))
+            errors["address"] = ["Address is required."];
+
+        return errors.Count == 0 ? null : errors;
     }
 }
 

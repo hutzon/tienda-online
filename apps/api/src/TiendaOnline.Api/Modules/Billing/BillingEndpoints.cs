@@ -18,6 +18,7 @@ public static class BillingEndpoints
             Guid orderId,
             AppCommerceContext dbContext,
             IFelProvider felProvider,
+            ILoggerFactory loggerFactory,
             CancellationToken cancellationToken) =>
         {
             var order = await dbContext.Orders
@@ -36,6 +37,9 @@ public static class BillingEndpoints
             {
                 return Results.BadRequest(new { message = "An invoice has already been emitted for this order." });
             }
+
+            var logger = loggerFactory.CreateLogger("BillingEndpoints");
+            logger.LogInformation("Starting invoice emission for OrderId={OrderId}", orderId);
 
             var taxRate = 0.12m;
             var taxAmount = order.Subtotal * taxRate;
@@ -74,10 +78,12 @@ public static class BillingEndpoints
                 invoice.Uuid = felResponse.Uuid;
                 invoice.SatSignature = felResponse.Signature;
                 invoice.EmittedAt = DateTimeOffset.UtcNow;
+                logger.LogInformation("Invoice emitted successfully for OrderId={OrderId}, Uuid={Uuid}", orderId, invoice.Uuid);
             }
             else
             {
                 invoice.Status = InvoiceStatuses.Error;
+                logger.LogWarning("Failed to emit invoice for OrderId={OrderId}, Error={Error}", orderId, felResponse.ErrorMessage);
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);

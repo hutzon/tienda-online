@@ -23,6 +23,16 @@ builder.Logging.AddJsonConsole(options =>
     options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -35,6 +45,30 @@ builder.Services.AddHttpClient<IFelProvider, MockFelProvider>();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseCors("AllowAll");
+
+// Correlation ID: propaga o genera un identificador por request para trazabilidad en logs.
+app.Use(async (context, next) =>
+{
+    var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault()
+        ?? Guid.NewGuid().ToString("N")[..12];
+    context.Response.Headers["X-Correlation-Id"] = correlationId;
+
+    var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("RequestLog");
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    await next(context);
+    sw.Stop();
+
+    logger.LogInformation(
+        "HTTP {Method} {Path} → {StatusCode} in {ElapsedMs}ms [cid={CorrelationId}]",
+        context.Request.Method,
+        context.Request.Path,
+        context.Response.StatusCode,
+        sw.ElapsedMilliseconds,
+        correlationId);
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
