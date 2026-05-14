@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
 import { PublicFooter } from '@/components/storefront/PublicFooter';
 import { PublicHeader } from '@/components/storefront/PublicHeader';
+import { CartProvider } from '@/lib/cart/CartContext';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'TiendaOnline | Storefront',
+    default: 'TiendaOnline',
     template: '%s | TiendaOnline',
   },
-  description: 'Base pública inicial del storefront de TiendaOnline.',
+  description: 'Catálogo, carrito y checkout en línea.',
 };
 
 export default function RootLayout({
@@ -19,11 +20,13 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <div className="site-frame">
-          <PublicHeader />
-          <main className="site-main">{children}</main>
-          <PublicFooter />
-        </div>
+        <CartProvider>
+          <div className="site-frame">
+            <PublicHeader />
+            <main className="site-main">{children}</main>
+            <PublicFooter />
+          </div>
+        </CartProvider>
       </body>
     </html>
   );

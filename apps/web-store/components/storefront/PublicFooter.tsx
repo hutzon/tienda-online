@@ -7,16 +7,13 @@ export function PublicFooter() {
       <StorefrontContainer className="site-footer-inner">
         <div>
           <strong>TiendaOnline</strong>
-          <p>
-            Base pública inicial del storefront. Sin branding definitivo ni lógica
-            comercial real todavía.
-          </p>
+          <p>Tu tienda en línea. Catálogo, carrito y checkout.</p>
         </div>
 
         <div className="footer-links">
           <Link href="/catalog">Catálogo</Link>
           <Link href="/cart">Carrito</Link>
-          <Link href="/account">Cuenta</Link>
+          <Link href="/account">Mi cuenta</Link>
         </div>
       </StorefrontContainer>
     </footer>

@@ -18,7 +18,7 @@ Construir una tienda online profesional con:
 - Backend: ASP.NET Core Web API como modular monolith inicial.
 - Package manager y estrategia de monorepo: `npm workspaces`.
 - Node fijado: `22.13.1`.
-- .NET SDK fijado: `10.0.103`.
+- .NET SDK fijado: `10.0.102` (actualizado desde `10.0.103` — SDK disponible en el entorno actual).
 - Base de datos local: PostgreSQL `17-alpine`.
 - Redis local: `7.4-alpine`.
 - Mock FEL/SAT oficial: `mocks/fel-sat-mock/`.
@@ -351,6 +351,51 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
 
+### Tarea 14 — Refinamiento del Storefront, Carrito Real y Pruebas desde la Web
+
+**Hallazgos antes de corregir:**
+- Carrito era un placeholder con `CartOrderBase` — seleccionaba 1 producto desde un `<select>` y creaba un checkout directo. Sin estado real.
+- ProductCard y detalle de producto no tenían botón "Agregar al carrito".
+- Home mostraba texto placeholder: "Storefront Base", "Sin lógica de negocio".
+- Footer decía "Sin branding definitivo ni lógica comercial real".
+- Header no mostraba conteo de items en carrito.
+- `global.json` pedía `10.0.103` pero el SDK disponible es `10.0.102`.
+- `appsettings.Development.json` no existía → API fallaba con `IDX10703: key length is zero` al no tener JWT secret configurado.
+
+**Decisiones técnicas:**
+- Carrito implementado como `CartContext` (React Context + `useReducer`) con persistencia `localStorage`.
+- `CartProvider` envuelve el layout raíz → todo el árbol accede al carrito sin prop drilling.
+- `PublicHeader` convertido a `'use client'` para mostrar el badge dinámico de carrito.
+- `AddToCartButton` es client component reutilizable — variante `card` para tarjetas, variante `detail` para página de producto.
+- `CartView` es client component con lista de items, control de cantidades, eliminar, vaciar, y botón de checkout.
+- El checkout crea una sesión con todos los items del carrito y redirige a `/checkout/[sessionId]`.
+- `appsettings.Development.json` creado con JWT secret local y `UseInMemoryForTesting: true` — ya estaba en `.gitignore`.
+- `global.json` actualizado de `10.0.103` a `10.0.102` con `rollForward: latestFeature`.
+
+**Flujo funcional implementado:**
+1. Catálogo → "Agregar" en tarjeta → badge se actualiza en header.
+2. Detalle de producto → "Agregar al carrito" → feedback inmediato → badge actualiza.
+3. Carrito → lista con cantidades editables → eliminar individual → vaciar todo → total recalcula.
+4. Carrito → "Proceder al checkout" → crea sesión → redirige a `/checkout/[sessionId]`.
+
+**Pruebas manuales realizadas desde navegador/HTTP:**
+- Servicios levantados: API en `http://localhost:8080`, web-store en `http://localhost:3000`.
+- GET / → 200, "Bienvenido" visible, 3 productos del seed cargados.
+- GET /catalog → 200, 3 productos con botón "Agregar" visible.
+- GET /product/carry-everyday-backpack → 200, precio 425, CTA "Agregar al carrito", breadcrumb.
+- GET /product/smart-desk-light → 200.
+- GET /product/starter-office-kit → 200.
+- GET /cart → 200, estado vacío correcto, eyebrow "carrito de compras".
+- GET /account → 200.
+- POST /api/v1/checkout/sessions con 2 units → 200, session creada, order creado.
+- GET /checkout/[sessionId] → 200.
+- API /health → 200 Healthy.
+- API /api/v1/catalog/products → 200, 3 productos seed.
+
+**Limitaciones encontradas:**
+- Las pruebas de interacción (clicks, localStorage) requieren navegador real — validadas a nivel de SSR/API.
+- `node_modules` no existían al inicio de la sesión → `npm install --engine-strict=false` requerido (Node 20.19.6 < 22.13.1 requerido).
+
 ## Riesgos o pendientes
 
 - El warning `baseline-browser-mapping` aparece en builds web, pero no bloquea el resultado.
@@ -364,14 +409,15 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 
 ## Siguientes pasos recomendados
 
-- Fase 13: CRUD real de categorías y soporte de marcas.
-- Fase 14: Inventario por lotes (Supplier, PurchaseOrder, InventoryLot).
-- Fase 15: Serialización de unidades (InventoryUnit con serial único).
-- Fase 16: Movimientos de inventario y descuento automático al confirmar compra.
-- Fase 17: Mejora operativa del admin (filtros, búsquedas, resúmenes).
-- Fase 18: Pruebas funcionales reales completas.
+- Fase 15: Inventario por lotes (Supplier, PurchaseOrder, InventoryLot).
+- Fase 16: Serialización de unidades (InventoryUnit con serial único).
+- Fase 17: Movimientos de inventario y descuento automático al confirmar compra.
+- Fase 18: Mejora operativa del admin (filtros, búsquedas, resúmenes).
+- Pruebas funcionales completas con navegador real (Playwright o manual).
 - Migrar almacenamiento de imágenes a S3/CDN cuando se acerque a producción.
-- Implementar uso real de Redis: cache de catálogo, sesiones de carrito o rate limiting.
+- Implementar uso real de Redis: cache de catálogo o rate limiting.
 - Hardening de cookie `admin_token` a `httpOnly` vía API route.
 - Agregar OpenAPI/Swagger.
 - Introducir autenticación real de clientes en el storefront.
+- Persistir items del carrito en el backend (Redis o DB) para sesiones cross-device.
+- Agregar filtros de búsqueda/categoría en el catálogo público.
