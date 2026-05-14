@@ -89,3 +89,10 @@ docker-data/
 
 # ─── Claude Code (herramienta de desarrollo, no código del proyecto) ──────────
 .claude/
+
+# ─── Imágenes subidas localmente (almacenamiento dev — no se versionan) ───────
+# Las carpetas .gitkeep SÍ se versionan para mantener la estructura.
+apps/api/src/TiendaOnline.Api/wwwroot/uploads/products/*.jpg
+apps/api/src/TiendaOnline.Api/wwwroot/uploads/products/*.jpeg
+apps/api/src/TiendaOnline.Api/wwwroot/uploads/products/*.png
+apps/api/src/TiendaOnline.Api/wwwroot/uploads/products/*.webp

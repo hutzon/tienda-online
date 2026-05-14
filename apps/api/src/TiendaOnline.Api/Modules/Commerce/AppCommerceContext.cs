@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TiendaOnline.Api.Modules.Catalog.Entities;
+
 using TiendaOnline.Api.Modules.Inventory.Entities;
 using TiendaOnline.Api.Modules.Orders.Entities;
 
@@ -29,6 +30,8 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
     public DbSet<Invoice> Invoices => Set<Invoice>();
 
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
+
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -182,6 +185,23 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
             entity.HasOne(line => line.Invoice)
                 .WithMany(invoice => invoice.Lines)
                 .HasForeignKey(line => line.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProductImage>(entity =>
+        {
+            entity.ToTable("product_images");
+            entity.HasKey(img => img.Id);
+            entity.Property(img => img.ImageUrl).HasMaxLength(500).IsRequired();
+            entity.Property(img => img.AltText).HasMaxLength(255).IsRequired();
+            entity.Property(img => img.SortOrder).IsRequired();
+            entity.Property(img => img.IsPrimary).IsRequired();
+            entity.Property(img => img.CreatedAt).IsRequired();
+            entity.HasIndex(img => img.ProductId);
+
+            entity.HasOne(img => img.Product)
+                .WithMany(product => product.Images)
+                .HasForeignKey(img => img.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

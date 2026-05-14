@@ -18,12 +18,12 @@ public static class CatalogEndpoints
                 .AsNoTracking()
                 .Include(product => product.Category)
                 .Include(product => product.InventoryItem)
+                .Include(product => product.Images)
                 .Where(product => product.IsPublished)
                 .OrderBy(product => product.Name)
-                .Select(product => product.ToPublicSummary())
                 .ToListAsync();
 
-            return Results.Ok(products);
+            return Results.Ok(products.Select(product => product.ToPublicSummary()).ToList());
         })
         .WithName("GetPublicCatalogProducts");
 
@@ -33,13 +33,13 @@ public static class CatalogEndpoints
                 .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.InventoryItem)
-                .Where(product => product.IsPublished && product.Slug == slug)
-                .Select(product => product.ToPublicDetail())
+                .Include(p => p.Images)
+                .Where(p => p.IsPublished && p.Slug == slug)
                 .FirstOrDefaultAsync();
 
             return product is null
                 ? Results.NotFound(new { message = "Product not found." })
-                : Results.Ok(product);
+                : Results.Ok(product.ToPublicDetail());
         })
         .WithName("GetPublicCatalogProductBySlug");
 
@@ -53,11 +53,11 @@ public static class CatalogEndpoints
                 .AsNoTracking()
                 .Include(product => product.Category)
                 .Include(product => product.InventoryItem)
+                .Include(product => product.Images)
                 .OrderBy(product => product.Name)
-                .Select(product => product.ToAdminSummary())
                 .ToListAsync();
 
-            return Results.Ok(products);
+            return Results.Ok(products.Select(product => product.ToAdminSummary()).ToList());
         })
         .WithName("GetAdminProducts");
 
@@ -247,7 +247,8 @@ public sealed record PublicCatalogProductSummary(
     decimal Price,
     string Currency,
     bool InStock,
-    int StockOnHand);
+    int StockOnHand,
+    string? PrimaryImageUrl);
 
 public sealed record PublicCatalogProductDetail(
     Guid Id,
@@ -260,7 +261,8 @@ public sealed record PublicCatalogProductDetail(
     decimal Price,
     string Currency,
     bool InStock,
-    int StockOnHand);
+    int StockOnHand,
+    IReadOnlyList<ProductImageDto> Images);
 
 public sealed record AdminCatalogProductSummary(
     Guid Id,
@@ -274,26 +276,40 @@ public sealed record AdminCatalogProductSummary(
     string Currency,
     bool IsPublished,
     int StockOnHand,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    int ImageCount,
+    string? PrimaryImageUrl);
 
 internal static class CatalogMappings
 {
     public static PublicCatalogProductSummary ToPublicSummary(this Product product)
     {
+        var primaryImage = product.Images?
+            .FirstOrDefault(img => img.IsPrimary)
+            ?? product.Images?.OrderBy(img => img.SortOrder).FirstOrDefault();
+
         return new PublicCatalogProductSummary(
             product.Id,
             product.Name,
             product.Slug,
             product.Summary,
-            product.Category.Name,
+            product.Category!.Name,
             product.Price,
             product.Currency,
-            product.InventoryItem.StockOnHand > 0,
-            product.InventoryItem.StockOnHand);
+            product.InventoryItem!.StockOnHand > 0,
+            product.InventoryItem!.StockOnHand,
+            primaryImage?.ImageUrl);
     }
 
     public static PublicCatalogProductDetail ToPublicDetail(this Product product)
     {
+        var images = (product.Images ?? [])
+            .OrderByDescending(img => img.IsPrimary)
+            .ThenBy(img => img.SortOrder)
+            .ThenBy(img => img.CreatedAt)
+            .Select(img => new ProductImageDto(img.Id, img.ImageUrl, img.AltText, img.SortOrder, img.IsPrimary))
+            .ToList();
+
         return new PublicCatalogProductDetail(
             product.Id,
             product.Name,
@@ -301,27 +317,34 @@ internal static class CatalogMappings
             product.Sku,
             product.Summary,
             product.Description,
-            product.Category.Name,
+            product.Category!.Name,
             product.Price,
             product.Currency,
-            product.InventoryItem.StockOnHand > 0,
-            product.InventoryItem.StockOnHand);
+            product.InventoryItem!.StockOnHand > 0,
+            product.InventoryItem!.StockOnHand,
+            images);
     }
 
     public static AdminCatalogProductSummary ToAdminSummary(this Product product)
     {
+        var primaryImage = product.Images?
+            .FirstOrDefault(img => img.IsPrimary)
+            ?? product.Images?.OrderBy(img => img.SortOrder).FirstOrDefault();
+
         return new AdminCatalogProductSummary(
             product.Id,
             product.Name,
             product.Slug,
             product.Sku,
-            product.Category.Name,
+            product.Category!.Name,
             product.Summary,
             product.Description,
             product.Price,
             product.Currency,
             product.IsPublished,
-            product.InventoryItem.StockOnHand,
-            product.UpdatedAt);
+            product.InventoryItem!.StockOnHand,
+            product.UpdatedAt,
+            product.Images?.Count ?? 0,
+            primaryImage?.ImageUrl);
     }
 }

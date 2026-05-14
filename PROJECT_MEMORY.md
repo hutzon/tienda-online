@@ -190,7 +190,51 @@ apps/web-store/
 - Validados flujos: CashOnDelivery, OnlineSimulated+pago, factura FEL mock.
 - Confirmada persistencia: datos sobreviven entre reinicios de API.
 
+### Tarea 12 — Gestión de Imágenes de Producto
+
+- Entidad `ProductImage` creada con campos: id, productId, imageUrl, altText, sortOrder, isPrimary, createdAt.
+- Relación 1:N entre `Product` y `ProductImage` configurada en EF Core.
+- Migración SQL `004_add_product_images.sql` creada y aplicada automáticamente al iniciar.
+- `ImageEndpoints.cs` creado con 5 endpoints: upload (POST), list admin (GET), list public (GET), set-primary (PUT), delete (DELETE).
+- Almacenamiento local en `wwwroot/uploads/products/` con `PhysicalFileProvider` explícito en `Program.cs`.
+- URL de imagen construida dinámicamente desde el request (scheme+host) en el upload — no almacenada con host fijo.
+- Static files: `UseStaticFiles` con `PhysicalFileProvider` explícito + creación del directorio en startup.
+- `.gitignore` actualizado para ignorar `*.jpg|png|webp|jpeg` en uploads, pero versionar `.gitkeep`.
+- `CatalogEndpoints.cs` actualizado: `PublicCatalogProductSummary` incluye `primaryImageUrl`, `PublicCatalogProductDetail` incluye lista `images`, `AdminCatalogProductSummary` incluye `imageCount` y `primaryImageUrl`.
+- `web-admin/lib/api/commerce.ts` actualizado: funciones `fetchProductImages`, `uploadProductImage`, `setPrimaryProductImage`, `deleteProductImage`.
+- `CatalogView.tsx` actualizado: fila expandible por producto que muestra galería de imágenes, upload inline, set-primary y delete.
+- `web-store/lib/api/commerce.ts` actualizado: `ProductImageDto` + `images` en `PublicCatalogProductDetail`.
+- `ProductImageGallery.tsx` creado: componente client con carrusel (flechas), puntos de navegación, miniaturas y fallback SVG.
+- `product/[slug]/page.tsx` actualizado: usa `ProductImageGallery` real con las imágenes del producto.
+
+**Decisiones técnicas:**
+- Almacenamiento local para desarrollo — diseñado para evolucionar a S3/CDN.
+- Tipos permitidos: jpg, jpeg, png, webp. Límite: 5 MB.
+- La primera imagen subida se marca automáticamente como principal.
+- Al eliminar imagen principal, la siguiente por sortOrder se promueve automáticamente.
+- Validaciones de tipo y tamaño en el endpoint backend.
+
 ## Archivos creados o modificados en la tarea actual
+
+- `apps/api/src/TiendaOnline.Api/Modules/Catalog/Entities/ProductImage.cs` — nuevo
+- `apps/api/src/TiendaOnline.Api/Modules/Catalog/ImageEndpoints.cs` — nuevo
+- `apps/api/src/TiendaOnline.Api/wwwroot/.gitkeep` — nuevo
+- `apps/api/src/TiendaOnline.Api/wwwroot/uploads/products/.gitkeep` — nuevo
+- `infra/db/migrations/004_add_product_images.sql` — nuevo
+- `docs/EXECUTION_TRACKER.md` — nuevo (tracker maestro del plan)
+- `apps/api/src/TiendaOnline.Api/Modules/Catalog/Entities/Product.cs` — modificado (Images nav)
+- `apps/api/src/TiendaOnline.Api/Modules/Commerce/AppCommerceContext.cs` — modificado (DbSet + config)
+- `apps/api/src/TiendaOnline.Api/Modules/Catalog/CatalogEndpoints.cs` — modificado (imágenes en responses)
+- `apps/api/src/TiendaOnline.Api/Program.cs` — modificado (static files + MapImageEndpoints)
+- `apps/web-admin/lib/api/commerce.ts` — modificado (image API functions)
+- `apps/web-admin/app/(admin)/catalog/CatalogView.tsx` — modificado (image management UI)
+- `apps/web-store/lib/api/commerce.ts` — modificado (ProductImageDto + images)
+- `apps/web-store/components/storefront/ProductImageGallery.tsx` — nuevo
+- `apps/web-store/app/product/[slug]/page.tsx` — modificado (gallery)
+- `.gitignore` — modificado (uploads ignorados)
+- `docs/handoffs/2026-05-13_imagenes_producto_galeria.md` — nuevo
+
+## Archivos creados o modificados en tarea 11
 
 - `docker-compose.yml` — PostgreSQL en `5433:5432` (local Windows usa 5432)
 - `apps/api/src/TiendaOnline.Api/appsettings.json` — connection string `Port=5433`
@@ -310,19 +354,24 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 ## Riesgos o pendientes
 
 - El warning `baseline-browser-mapping` aparece en builds web, pero no bloquea el resultado.
-- 12 warnings CS8602 (nullable references) pre-existentes en CatalogEndpoints/InventoryEndpoints/OrderEndpoints — no bloqueantes.
+- 12+ warnings CS8602 (nullable references) pre-existentes — no bloqueantes.
 - OpenAPI sigue diferido.
 - Las migraciones SQL en `infra/db/migrations/` siguen siendo manuales (no EF Core Migrations).
 - La cookie `admin_token` sigue siendo JavaScript-accessible (no `httpOnly`) — aceptable en Development.
 - Redis funcionando pero no usado en lógica de negocio aún (solo health check).
+- Las imágenes de producto se almacenan localmente en `wwwroot/uploads/products/` — no productivo.
 - Los placeholders visuales deben reemplazarse con assets reales cuando haya identidad de marca.
 
 ## Siguientes pasos recomendados
 
+- Fase 13: CRUD real de categorías y soporte de marcas.
+- Fase 14: Inventario por lotes (Supplier, PurchaseOrder, InventoryLot).
+- Fase 15: Serialización de unidades (InventoryUnit con serial único).
+- Fase 16: Movimientos de inventario y descuento automático al confirmar compra.
+- Fase 17: Mejora operativa del admin (filtros, búsquedas, resúmenes).
+- Fase 18: Pruebas funcionales reales completas.
+- Migrar almacenamiento de imágenes a S3/CDN cuando se acerque a producción.
 - Implementar uso real de Redis: cache de catálogo, sesiones de carrito o rate limiting.
-- `app/(admin)/billing/page.tsx` es placeholder — implementar vista real de facturas (listado global).
-- Hardening de cookie `admin_token` a `httpOnly` vía API route cuando se acerque a producción.
-- Agregar OpenAPI/Swagger ahora que el stack con PostgreSQL real está validado.
+- Hardening de cookie `admin_token` a `httpOnly` vía API route.
+- Agregar OpenAPI/Swagger.
 - Introducir autenticación real de clientes en el storefront.
-- Planificar transición de `/auth/dev/token` a autenticación real con usuarios en DB.
-- Mantener fuera del alcance pagos reales, SAT/FEL real y branding final.

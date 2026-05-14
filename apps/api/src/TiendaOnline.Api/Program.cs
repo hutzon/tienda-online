@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using TiendaOnline.Api.Auth;
@@ -46,6 +48,18 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseCors("AllowAll");
+
+// Serve uploaded product images from wwwroot/uploads/ (local dev storage).
+// The directory is created here so UseStaticFiles always has a valid PhysicalFileProvider.
+var webRootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "products"));
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(webRootPath),
+    RequestPath = "",
+    ContentTypeProvider = new FileExtensionContentTypeProvider(),
+});
 
 // Correlation ID: propaga o genera un identificador por request para trazabilidad en logs.
 app.Use(async (context, next) =>
@@ -100,6 +114,7 @@ app.MapSystemEndpoints();
 app.MapAdminEndpoints();
 app.MapDevAuthEndpoints(app.Environment);
 app.MapCatalogEndpoints();
+app.MapImageEndpoints();
 app.MapInventoryEndpoints();
 app.MapOrderEndpoints();
 app.MapCheckoutEndpoints();

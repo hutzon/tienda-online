@@ -34,4 +34,6 @@ public sealed class Product
     public InventoryItem? InventoryItem { get; set; }
 
     public List<OrderItem>? OrderItems { get; set; }
+
+    public List<ProductImage>? Images { get; set; }
 }

@@ -1,4 +1,15 @@
 import { apiFetch } from './client';
+import { getToken } from '../session';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+
+export interface ProductImageDto {
+  id: string;
+  imageUrl: string;
+  altText: string;
+  sortOrder: number;
+  isPrimary: boolean;
+}
 
 export interface AdminCatalogProductSummary {
   id: string;
@@ -13,6 +24,8 @@ export interface AdminCatalogProductSummary {
   isPublished: boolean;
   stockOnHand: number;
   updatedAt: string;
+  imageCount: number;
+  primaryImageUrl?: string;
 }
 
 export interface UpsertProductRequest {
@@ -109,4 +122,52 @@ export async function emitInvoice(orderId: string): Promise<InvoiceResponse> {
     method: 'POST',
     authenticated: true,
   });
+}
+
+export async function fetchProductImages(productId: string): Promise<ProductImageDto[]> {
+  return apiFetch<ProductImageDto[]>(
+    `/api/v1/admin/catalog/products/${productId}/images`,
+    { authenticated: true },
+  );
+}
+
+export async function uploadProductImage(productId: string, file: File): Promise<ProductImageDto> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/catalog/products/${productId}/images`,
+    {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText);
+    throw new Error(text || 'Upload failed');
+  }
+
+  return response.json() as Promise<ProductImageDto>;
+}
+
+export async function setPrimaryProductImage(productId: string, imageId: string): Promise<ProductImageDto> {
+  return apiFetch<ProductImageDto>(
+    `/api/v1/admin/catalog/products/${productId}/images/${imageId}/primary`,
+    { method: 'PUT', authenticated: true },
+  );
+}
+
+export async function deleteProductImage(productId: string, imageId: string): Promise<void> {
+  const token = getToken();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/catalog/products/${productId}/images/${imageId}`,
+    {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
+  );
+  if (!response.ok) throw new Error('Failed to delete image');
 }

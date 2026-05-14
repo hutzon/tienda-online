@@ -1,5 +1,13 @@
 import { apiFetch } from './client';
 
+export interface ProductImageDto {
+  id: string;
+  imageUrl: string;
+  altText: string;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
 export interface PublicCatalogProductSummary {
   id: string;
   name: string;
@@ -10,6 +18,7 @@ export interface PublicCatalogProductSummary {
   currency: string;
   inStock: boolean;
   stockOnHand: number;
+  primaryImageUrl?: string;
 }
 
 export interface PublicCatalogProductDetail {
@@ -24,6 +33,7 @@ export interface PublicCatalogProductDetail {
   currency: string;
   inStock: boolean;
   stockOnHand: number;
+  images: ProductImageDto[];
 }
 
 export interface CreateOrderItemRequest {

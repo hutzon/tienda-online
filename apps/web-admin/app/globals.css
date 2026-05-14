@@ -379,6 +379,130 @@ body {
 
 .mono { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.88em; }
 
+/* ── Admin forms ───────────────────────────────────────────── */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.admin-form h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  padding: 0.45rem 0;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+  border-bottom-color: var(--color-accent);
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: rgba(148, 163, 184, 0.4);
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-field input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.form-actions .btn-primary {
+  width: auto;
+  padding: 0.6rem 1.5rem;
+}
+
+/* ── Data table ────────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.data-table thead tr {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+  padding: 0.5rem 0.75rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-surface2);
+}
+
+.data-table .empty-row td {
+  text-align: center;
+  color: var(--color-muted);
+  padding: 2rem;
+}
+
 /* ── Placeholder pages ─────────────────────────────────────── */
 .placeholder-page {
   display: grid;
