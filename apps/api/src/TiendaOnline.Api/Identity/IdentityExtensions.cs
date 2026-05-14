@@ -24,6 +24,7 @@ public static class IdentityExtensions
             }
 
             options.UseNpgsql(databaseOptions.ConnectionString);
+            options.UseSnakeCaseNamingConvention();
         });
 
         return services;

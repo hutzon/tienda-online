@@ -1,37 +1,42 @@
--- 003_create_billing_tables.sql
--- Creado: 2026-04-25
+-- Migration: 003_create_billing_tables
+-- Description: Crea tablas de facturacion electronica (FEL/SAT mock).
+-- Columnas en snake_case para coincidir con UseSnakeCaseNamingConvention de EF Core.
 
 SET search_path TO commerce;
 
-CREATE TABLE invoices (
-    "Id" uuid NOT NULL,
-    "OrderId" uuid NOT NULL,
-    "Uuid" character varying(100),
-    "SatSignature" character varying(255),
-    "Status" character varying(30) NOT NULL,
-    "Subtotal" numeric(18,2) NOT NULL,
-    "TaxAmount" numeric(18,2) NOT NULL,
-    "Total" numeric(18,2) NOT NULL,
-    "PayloadSent" text,
-    "ProviderResponse" text,
-    "CreatedAt" timestamp with time zone NOT NULL,
-    "EmittedAt" timestamp with time zone,
-    CONSTRAINT "PK_invoices" PRIMARY KEY ("Id"),
-    CONSTRAINT "FK_invoices_orders_OrderId" FOREIGN KEY ("OrderId") REFERENCES orders ("Id") ON DELETE RESTRICT
+CREATE TABLE IF NOT EXISTS invoices (
+    id                UUID             NOT NULL DEFAULT gen_random_uuid(),
+    order_id          UUID             NOT NULL,
+    uuid              VARCHAR(100)     NULL,
+    sat_signature     VARCHAR(255)     NULL,
+    status            VARCHAR(30)      NOT NULL,
+    subtotal          NUMERIC(18, 2)   NOT NULL,
+    tax_amount        NUMERIC(18, 2)   NOT NULL,
+    total             NUMERIC(18, 2)   NOT NULL,
+    payload_sent      TEXT             NULL,
+    provider_response TEXT             NULL,
+    created_at        TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    emitted_at        TIMESTAMPTZ      NULL,
+
+    CONSTRAINT pk_invoices PRIMARY KEY (id),
+    CONSTRAINT fk_invoices_orders_order_id FOREIGN KEY (order_id)
+        REFERENCES orders (id) ON DELETE RESTRICT
 );
 
-CREATE TABLE invoice_lines (
-    "Id" uuid NOT NULL,
-    "InvoiceId" uuid NOT NULL,
-    "ProductId" uuid NOT NULL,
-    "ProductName" character varying(180) NOT NULL,
-    "Sku" character varying(100) NOT NULL,
-    "Quantity" integer NOT NULL,
-    "UnitPrice" numeric(18,2) NOT NULL,
-    "LineTotal" numeric(18,2) NOT NULL,
-    CONSTRAINT "PK_invoice_lines" PRIMARY KEY ("Id"),
-    CONSTRAINT "FK_invoice_lines_invoices_InvoiceId" FOREIGN KEY ("InvoiceId") REFERENCES invoices ("Id") ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS invoice_lines (
+    id           UUID             NOT NULL DEFAULT gen_random_uuid(),
+    invoice_id   UUID             NOT NULL,
+    product_id   UUID             NOT NULL,
+    product_name VARCHAR(180)     NOT NULL,
+    sku          VARCHAR(100)     NOT NULL,
+    quantity     INTEGER          NOT NULL,
+    unit_price   NUMERIC(18, 2)   NOT NULL,
+    line_total   NUMERIC(18, 2)   NOT NULL,
+
+    CONSTRAINT pk_invoice_lines PRIMARY KEY (id),
+    CONSTRAINT fk_invoice_lines_invoices_invoice_id FOREIGN KEY (invoice_id)
+        REFERENCES invoices (id) ON DELETE CASCADE
 );
 
-CREATE INDEX "IX_invoices_OrderId" ON invoices ("OrderId");
-CREATE INDEX "IX_invoice_lines_InvoiceId" ON invoice_lines ("InvoiceId");
+CREATE INDEX ix_invoices_order_id ON invoices (order_id);
+CREATE INDEX ix_invoice_lines_invoice_id ON invoice_lines (invoice_id);

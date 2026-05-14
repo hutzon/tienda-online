@@ -179,7 +179,29 @@ apps/web-store/
 - Placeholders visuales en ProductCard son temporales y no representan branding final.
 - El middleware de correlación (`X-Correlation-Id`) es una convención de trazabilidad mínima en el backend.
 
+### Tarea 11: Validación con Docker, PostgreSQL, Redis y Persistencia Real
+
+- Identificado conflicto de puerto: PostgreSQL local de Windows ocupa 5432 → Docker usa 5433.
+- Reescrita migración 002 completa: incluye `checkout_sessions`, `payment_attempts`, columnas `phone`/`address` en `orders`.
+- Reescrita migración 003 en snake_case (antes usaba columnas PascalCase que no existían en DB).
+- Agregado paquete `EFCore.NamingConventions 9.0.0` para sincronizar EF Core con columnas snake_case.
+- Configurado `options.UseSnakeCaseNamingConvention()` en `AppCommerceContext` y `AppIdentityContext`.
+- Validado stack completo: 3 migraciones aplicadas, seed data, `/health` + `/health/ready` = Healthy.
+- Validados flujos: CashOnDelivery, OnlineSimulated+pago, factura FEL mock.
+- Confirmada persistencia: datos sobreviven entre reinicios de API.
+
 ## Archivos creados o modificados en la tarea actual
+
+- `docker-compose.yml` — PostgreSQL en `5433:5432` (local Windows usa 5432)
+- `apps/api/src/TiendaOnline.Api/appsettings.json` — connection string `Port=5433`
+- `apps/api/src/TiendaOnline.Api/TiendaOnline.Api.csproj` — `EFCore.NamingConventions 9.0.0`
+- `apps/api/src/TiendaOnline.Api/Identity/IdentityExtensions.cs` — `UseSnakeCaseNamingConvention()`
+- `apps/api/src/TiendaOnline.Api/Modules/Commerce/CommerceExtensions.cs` — `UseSnakeCaseNamingConvention()`
+- `infra/db/migrations/002_create_commerce_tables.sql` — reescrito completo
+- `infra/db/migrations/003_create_billing_tables.sql` — reescrito en snake_case
+- `docs/handoffs/2026-05-13_docker_postgresql_redis_validacion.md` — handoff completo
+
+## Archivos creados o modificados en tareas anteriores (9–10)
 
 - `apps/api/src/TiendaOnline.Api/Modules/Checkout/CheckoutEndpoints.cs` — validaciones qty y customer
 - `apps/api/src/TiendaOnline.Api/Middleware/GlobalExceptionHandler.cs` — IWebHostEnvironment + correlationId
@@ -263,30 +285,44 @@ apps/web-store/
 - Mejorado `ProductCard.tsx` con placeholder visual accesible (SVG + aria-label).
 - Actualizado `PublicHeader.tsx` con iconos en navegación.
 
-## Decisiones de arranque local (sin Docker)
+## Decisiones de arranque local
 
-- Para correr el backend sin Docker: `Database__UseInMemoryForTesting=true ASPNETCORE_ENVIRONMENT=Development dotnet run --project apps/api/...`
-- Para correr el mock FEL en el puerto correcto: `dotnet run --project mocks/fel-sat-mock/FelSatMock.Api.csproj --urls http://localhost:5153`
-- El flag `UseInMemoryForTesting` está soportado en ambos contextos: `AppCommerceContext` y `AppIdentityContext`.
+### Con Docker (PostgreSQL real — recomendado)
+```powershell
+docker compose up -d
+dotnet run --project apps/api/src/TiendaOnline.Api/TiendaOnline.Api.csproj --urls http://localhost:8080
+dotnet run --project mocks/fel-sat-mock/FelSatMock.Api.csproj --urls http://localhost:5153
+npm run dev -w @tienda-online/web-store    # puerto 3000
+npm run dev -w @tienda-online/web-admin    # puerto 3001
+```
+
+### Sin Docker (InMemory DB)
+```powershell
+$env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
+```
 - Los datos del InMemory DB se pierden al reiniciar el backend.
+
+### Nota de puerto PostgreSQL
+- En este entorno existe PostgreSQL local en Windows en puerto 5432.
+- Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
+- `appsettings.json` tiene `Port=5433` en la connection string.
 
 ## Riesgos o pendientes
 
-- `/health/ready` depende de PostgreSQL y Redis activos; si Docker Desktop no está iniciado, no puede validarse.
 - El warning `baseline-browser-mapping` aparece en builds web, pero no bloquea el resultado.
 - 12 warnings CS8602 (nullable references) pre-existentes en CatalogEndpoints/InventoryEndpoints/OrderEndpoints — no bloqueantes.
 - OpenAPI sigue diferido.
-- Las migraciones SQL en `infra/db/migrations/` siguen siendo manuales.
+- Las migraciones SQL en `infra/db/migrations/` siguen siendo manuales (no EF Core Migrations).
 - La cookie `admin_token` sigue siendo JavaScript-accessible (no `httpOnly`) — aceptable en Development.
-- La entrada `/billing` del Sidebar admin no tiene página propia aún — pendiente para siguiente ciclo.
+- Redis funcionando pero no usado en lógica de negocio aún (solo health check).
 - Los placeholders visuales deben reemplazarse con assets reales cuando haya identidad de marca.
 
 ## Siguientes pasos recomendados
 
-- `app/(admin)/billing/page.tsx` ya existe como placeholder — implementar vista real de facturas cuando sea necesario.
+- Implementar uso real de Redis: cache de catálogo, sesiones de carrito o rate limiting.
+- `app/(admin)/billing/page.tsx` es placeholder — implementar vista real de facturas (listado global).
 - Hardening de cookie `admin_token` a `httpOnly` vía API route cuando se acerque a producción.
-- Aplicar migraciones SQL antes de trabajar con persistencia real.
-- Agregar OpenAPI cuando el catálogo de endpoints estabilice.
-- Introducir autenticación real de clientes y hardening de cookies en fases posteriores.
+- Agregar OpenAPI/Swagger ahora que el stack con PostgreSQL real está validado.
+- Introducir autenticación real de clientes en el storefront.
 - Planificar transición de `/auth/dev/token` a autenticación real con usuarios en DB.
 - Mantener fuera del alcance pagos reales, SAT/FEL real y branding final.

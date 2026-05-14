@@ -28,6 +28,7 @@ public static class CommerceExtensions
             }
 
             options.UseNpgsql(databaseOptions.ConnectionString);
+            options.UseSnakeCaseNamingConvention();
         });
 
         return services;
