@@ -17,6 +17,7 @@ public static class CatalogEndpoints
             var products = await dbContext.Products
                 .AsNoTracking()
                 .Include(product => product.Category)
+                .Include(product => product.Brand)
                 .Include(product => product.InventoryItem)
                 .Include(product => product.Images)
                 .Where(product => product.IsPublished)
@@ -32,6 +33,7 @@ public static class CatalogEndpoints
             var product = await dbContext.Products
                 .AsNoTracking()
                 .Include(p => p.Category)
+                .Include(p => p.Brand)
                 .Include(p => p.InventoryItem)
                 .Include(p => p.Images)
                 .Where(p => p.IsPublished && p.Slug == slug)
@@ -52,6 +54,7 @@ public static class CatalogEndpoints
             var products = await dbContext.Products
                 .AsNoTracking()
                 .Include(product => product.Category)
+                .Include(product => product.Brand)
                 .Include(product => product.InventoryItem)
                 .Include(product => product.Images)
                 .OrderBy(product => product.Name)
@@ -73,11 +76,15 @@ public static class CatalogEndpoints
             }
 
             var category = await GetOrCreateCategoryAsync(request.CategoryName, dbContext, cancellationToken);
+            var brand = string.IsNullOrWhiteSpace(request.BrandName)
+                ? null
+                : await GetOrCreateBrandAsync(request.BrandName, dbContext, cancellationToken);
             var slug = CommerceText.ToSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
 
             var product = new Product
             {
                 Category = category,
+                Brand = brand,
                 Name = request.Name.Trim(),
                 Slug = slug,
                 Sku = request.Sku.Trim().ToUpperInvariant(),
@@ -123,6 +130,7 @@ public static class CatalogEndpoints
 
             var product = await dbContext.Products
                 .Include(existingProduct => existingProduct.Category)
+                .Include(existingProduct => existingProduct.Brand)
                 .Include(existingProduct => existingProduct.InventoryItem)
                 .FirstOrDefaultAsync(existingProduct => existingProduct.Id == id, cancellationToken);
 
@@ -132,6 +140,9 @@ public static class CatalogEndpoints
             }
 
             product.Category = await GetOrCreateCategoryAsync(request.CategoryName, dbContext, cancellationToken);
+            product.Brand = string.IsNullOrWhiteSpace(request.BrandName)
+                ? null
+                : await GetOrCreateBrandAsync(request.BrandName, dbContext, cancellationToken);
             product.Name = request.Name.Trim();
             product.Slug = CommerceText.ToSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
             product.Sku = request.Sku.Trim().ToUpperInvariant();
@@ -140,8 +151,8 @@ public static class CatalogEndpoints
             product.Price = request.Price;
             product.IsPublished = request.IsPublished;
             product.UpdatedAt = DateTimeOffset.UtcNow;
-            product.InventoryItem.StockOnHand = request.StockOnHand;
-            product.InventoryItem.UpdatedAt = DateTimeOffset.UtcNow;
+            product.InventoryItem!.StockOnHand = request.StockOnHand;
+            product.InventoryItem!.UpdatedAt = DateTimeOffset.UtcNow;
 
             try
             {
@@ -155,6 +166,28 @@ public static class CatalogEndpoints
             return Results.Ok(product.ToAdminSummary());
         })
         .WithName("UpdateAdminProduct");
+    }
+
+    private static async Task<Brand?> GetOrCreateBrandAsync(
+        string brandName,
+        AppCommerceContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var trimmedName = brandName.Trim();
+        var slug = CommerceText.ToSlug(trimmedName);
+
+        var existing = await dbContext.Brands
+            .FirstOrDefaultAsync(b => b.Slug == slug, cancellationToken);
+
+        if (existing is not null)
+        {
+            existing.Name = trimmedName;
+            return existing;
+        }
+
+        var brand = new Brand { Name = trimmedName, Slug = slug };
+        dbContext.Brands.Add(brand);
+        return brand;
     }
 
     private static async Task<Category> GetOrCreateCategoryAsync(
@@ -236,7 +269,8 @@ public sealed record UpsertProductRequest(
     string Description,
     decimal Price,
     bool IsPublished,
-    int StockOnHand);
+    int StockOnHand,
+    string? BrandName = null);
 
 public sealed record PublicCatalogProductSummary(
     Guid Id,
@@ -244,6 +278,7 @@ public sealed record PublicCatalogProductSummary(
     string Slug,
     string Summary,
     string CategoryName,
+    string? BrandName,
     decimal Price,
     string Currency,
     bool InStock,
@@ -258,6 +293,7 @@ public sealed record PublicCatalogProductDetail(
     string Summary,
     string Description,
     string CategoryName,
+    string? BrandName,
     decimal Price,
     string Currency,
     bool InStock,
@@ -270,6 +306,7 @@ public sealed record AdminCatalogProductSummary(
     string Slug,
     string Sku,
     string CategoryName,
+    string? BrandName,
     string Summary,
     string Description,
     decimal Price,
@@ -294,6 +331,7 @@ internal static class CatalogMappings
             product.Slug,
             product.Summary,
             product.Category!.Name,
+            product.Brand?.Name,
             product.Price,
             product.Currency,
             product.InventoryItem!.StockOnHand > 0,
@@ -318,6 +356,7 @@ internal static class CatalogMappings
             product.Summary,
             product.Description,
             product.Category!.Name,
+            product.Brand?.Name,
             product.Price,
             product.Currency,
             product.InventoryItem!.StockOnHand > 0,
@@ -337,6 +376,7 @@ internal static class CatalogMappings
             product.Slug,
             product.Sku,
             product.Category!.Name,
+            product.Brand?.Name,
             product.Summary,
             product.Description,
             product.Price,

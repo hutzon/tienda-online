@@ -58,8 +58,8 @@ Subir y gestionar imágenes desde admin, soportar múltiples imágenes por produ
 
 | Campo | Valor |
 |---|---|
-| **Estado** | Pending |
-| **Fecha inicio** | — |
+| **Estado** | In Progress |
+| **Fecha inicio** | 2026-05-13 |
 | **Fecha fin** | — |
 | **Commit** | Pendiente |
 

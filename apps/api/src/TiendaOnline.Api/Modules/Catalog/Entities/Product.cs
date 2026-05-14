@@ -29,7 +29,11 @@ public sealed class Product
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    public Guid? BrandId { get; set; }
+
     public Category? Category { get; set; }
+
+    public Brand? Brand { get; set; }
 
     public InventoryItem? InventoryItem { get; set; }
 

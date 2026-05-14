@@ -14,6 +14,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboardIcon className="w-5 h-5" /> },
   { href: '/catalog', label: 'Catálogo', icon: <PackageIcon className="w-5 h-5" /> },
+  { href: '/catalog/categories', label: 'Categorías / Marcas', icon: <PackageIcon className="w-5 h-5" /> },
   { href: '/inventory', label: 'Inventario', icon: <BoxIcon className="w-5 h-5" /> },
   { href: '/orders', label: 'Pedidos', icon: <ShoppingCartIcon className="w-5 h-5" /> },
   { href: '/billing', label: 'Facturación', icon: <FileTextIcon className="w-5 h-5" /> },

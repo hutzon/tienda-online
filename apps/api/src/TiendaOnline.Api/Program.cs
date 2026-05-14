@@ -115,6 +115,8 @@ app.MapAdminEndpoints();
 app.MapDevAuthEndpoints(app.Environment);
 app.MapCatalogEndpoints();
 app.MapImageEndpoints();
+app.MapCategoryEndpoints();
+app.MapBrandEndpoints();
 app.MapInventoryEndpoints();
 app.MapOrderEndpoints();
 app.MapCheckoutEndpoints();

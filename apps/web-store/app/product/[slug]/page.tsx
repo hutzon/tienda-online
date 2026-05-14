@@ -57,6 +57,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <p className="product-price">{product.currency} {product.price.toFixed(2)}</p>
           <p className="product-meta">SKU: {product.sku}</p>
           <p className="product-meta">Categoría: {product.categoryName}</p>
+          {product.brandName && (
+            <p className="product-meta">Marca: {product.brandName}</p>
+          )}
           {images.length > 0 && (
             <p className="product-meta">{images.length} imagen{images.length !== 1 ? 'es' : ''}</p>
           )}

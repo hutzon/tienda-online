@@ -28,6 +28,19 @@ export interface AdminCatalogProductSummary {
   primaryImageUrl?: string;
 }
 
+export interface CategoryDto {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface BrandDto {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
 export interface UpsertProductRequest {
   name: string;
   slug?: string;
@@ -38,6 +51,7 @@ export interface UpsertProductRequest {
   price: number;
   isPublished: boolean;
   stockOnHand: number;
+  brandName?: string;
 }
 
 export interface AdminInventoryProductRow {
@@ -170,4 +184,62 @@ export async function deleteProductImage(productId: string, imageId: string): Pr
     },
   );
   if (!response.ok) throw new Error('Failed to delete image');
+}
+
+// ── Categories ──────────────────────────────────────────────────────────────
+
+export async function fetchAdminCategories(): Promise<CategoryDto[]> {
+  return apiFetch<CategoryDto[]>('/api/v1/admin/catalog/categories/', { authenticated: true });
+}
+
+export async function createAdminCategory(name: string): Promise<CategoryDto> {
+  return apiFetch<CategoryDto>('/api/v1/admin/catalog/categories/', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+    authenticated: true,
+  });
+}
+
+export async function updateAdminCategory(id: string, name: string): Promise<CategoryDto> {
+  return apiFetch<CategoryDto>(`/api/v1/admin/catalog/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+    authenticated: true,
+  });
+}
+
+export async function deleteAdminCategory(id: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/admin/catalog/categories/${id}`, {
+    method: 'DELETE',
+    authenticated: true,
+  });
+}
+
+// ── Brands ───────────────────────────────────────────────────────────────────
+
+export async function fetchAdminBrands(): Promise<BrandDto[]> {
+  return apiFetch<BrandDto[]>('/api/v1/admin/catalog/brands/', { authenticated: true });
+}
+
+export async function createAdminBrand(name: string, description?: string): Promise<BrandDto> {
+  return apiFetch<BrandDto>('/api/v1/admin/catalog/brands/', {
+    method: 'POST',
+    body: JSON.stringify({ name, description }),
+    authenticated: true,
+  });
+}
+
+export async function updateAdminBrand(id: string, name: string, description?: string): Promise<BrandDto> {
+  return apiFetch<BrandDto>(`/api/v1/admin/catalog/brands/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name, description }),
+    authenticated: true,
+  });
+}
+
+export async function deleteAdminBrand(id: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/admin/catalog/brands/${id}`, {
+    method: 'DELETE',
+    authenticated: true,
+  });
 }

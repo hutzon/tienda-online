@@ -31,11 +31,24 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
 
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
 
+    public DbSet<Brand> Brands => Set<Brand>();
+
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("commerce");
+
+        modelBuilder.Entity<Brand>(entity =>
+        {
+            entity.ToTable("brands");
+            entity.HasKey(brand => brand.Id);
+            entity.Property(brand => brand.Name).HasMaxLength(120).IsRequired();
+            entity.Property(brand => brand.Slug).HasMaxLength(140).IsRequired();
+            entity.Property(brand => brand.Description).HasMaxLength(500);
+            entity.Property(brand => brand.CreatedAt).IsRequired();
+            entity.HasIndex(brand => brand.Slug).IsUnique();
+        });
 
         modelBuilder.Entity<Category>(entity =>
         {
@@ -67,6 +80,12 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
                 .WithMany(category => category.Products)
                 .HasForeignKey(product => product.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(product => product.Brand)
+                .WithMany(brand => brand.Products)
+                .HasForeignKey(product => product.BrandId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(product => product.InventoryItem)
                 .WithOne(inventory => inventory.Product)

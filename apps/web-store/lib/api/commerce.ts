@@ -14,6 +14,7 @@ export interface PublicCatalogProductSummary {
   slug: string;
   summary: string;
   categoryName: string;
+  brandName?: string;
   price: number;
   currency: string;
   inStock: boolean;
@@ -29,6 +30,7 @@ export interface PublicCatalogProductDetail {
   summary: string;
   description: string;
   categoryName: string;
+  brandName?: string;
   price: number;
   currency: string;
   inStock: boolean;
