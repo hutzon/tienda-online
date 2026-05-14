@@ -42,6 +42,8 @@ nupkgs/
 # ─── .NET local secrets / overrides ──────────────────────────────────────────
 **/appsettings.local.json
 **/appsettings.*.local.json
+# Development contiene SecretKey JWT real — no versionar en repos públicos
+**/appsettings.Development.json
 
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 logs/

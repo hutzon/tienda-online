@@ -42,7 +42,17 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="product-price">{product.currency} {product.price.toFixed(2)}</p>
       </div>
 
-      <ProductImagePlaceholder name={product.name} />
+      {product.primaryImageUrl ? (
+        <div style={{ width: '100%', height: '160px', borderRadius: '6px', marginBottom: '1rem', overflow: 'hidden' }}>
+          <img
+            src={product.primaryImageUrl}
+            alt={product.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
+      ) : (
+        <ProductImagePlaceholder name={product.name} />
+      )}
 
       <h3>{product.name}</h3>
       <p>{product.summary}</p>
