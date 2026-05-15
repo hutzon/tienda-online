@@ -214,7 +214,20 @@ apps/web-store/
 - Al eliminar imagen principal, la siguiente por sortOrder se promueve automáticamente.
 - Validaciones de tipo y tamaño en el endpoint backend.
 
-## Archivos creados o modificados en la tarea actual
+## Archivos creados o modificados en tarea 15 (Prompt 12)
+
+- `apps/web-store/app/catalog/page.tsx` — texto real, empty state profesional
+- `apps/web-store/app/account/page.tsx` — rediseñado: "Área de clientes", 3 cards Próximamente
+- `apps/web-store/app/not-found.tsx` — texto profesional, ícono SVG, sin placeholder developer
+- `apps/web-store/app/loading.tsx` — texto neutro
+- `apps/web-store/app/checkout/[sessionId]/page.tsx` — `params` como Promise + `use()`, CSS classes, error types corregidos
+- `apps/web-store/app/checkout/[sessionId]/success/page.tsx` — `params` como Promise + `use()`, CSS classes, sin emoji
+- `apps/web-store/app/globals.css` — clases checkout (layout, form, inputs, payment, simulate, success)
+- `apps/web-store/next-env.d.ts` — generado por build producción (`.next/types/` en vez de `.next/dev/types/`)
+- `apps/web-store/components/storefront/CartOrderBase.tsx` — **eliminado** (obsoleto)
+- `docs/handoffs/2026-05-14_storefront_refinamiento.md` — nuevo
+
+## Archivos creados o modificados en la tarea anterior (Tarea 12 — Imágenes)
 
 - `apps/api/src/TiendaOnline.Api/Modules/Catalog/Entities/ProductImage.cs` — nuevo
 - `apps/api/src/TiendaOnline.Api/Modules/Catalog/ImageEndpoints.cs` — nuevo
@@ -350,6 +363,57 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - En este entorno existe PostgreSQL local en Windows en puerto 5432.
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
+
+### Tarea 15 (Prompt 12) — Refinamiento Visual del Storefront y Pruebas desde la Web con Docker
+
+**Contexto de arranque:** Docker disponible (PostgreSQL en 5433, Redis en 6379). Stack completo corriendo.
+
+**Hallazgos antes de corregir:**
+- `catalog/page.tsx`: texto de placeholder developer-facing ("Catálogo base listo para conectar datos reales") visible en producción.
+- `account/page.tsx`: placeholder muy developer-facing ("Cuenta placeholder", "Acceso y perfil del cliente aún no implementados").
+- `not-found.tsx`: texto de placeholder ("inicio, catálogo, detalle placeholder, carrito y cuenta placeholder") visible en el RSC flight data.
+- `loading.tsx`: texto de placeholder ("Cargando storefront", "Preparando experiencia pública…").
+- `checkout/[sessionId]/page.tsx` y `success/page.tsx`: type `params: { sessionId: string }` — incorrecto para Next.js 15/16; causa que `.next/dev/types/validator.ts` quede corrupto y rompa `tsc --noEmit`.
+- `.next/dev/types/validator.ts`: corrupto por el tipo de params incorrecto → bloqueaba typecheck completo.
+- `CartOrderBase.tsx`: componente legado sin uso activo (reemplazado por CartContext + CartView).
+- Checkout page usaba inline styles crudos inconsistentes con el CSS del storefront.
+- Success page usaba emoji 🎉 y estilos crudos inconsistentes.
+
+**Correcciones aplicadas:**
+1. Eliminado `.next` corrupto; corregido `params` en checkout y success a `Promise<{sessionId}>` + `use(params)`.
+2. Catálogo: h1 "Todos los productos", se eliminó párrafo placeholder, se agregó empty-state profesional.
+3. Cuenta: página presentable con "Área de clientes", 3 info-cards "Próximamente", CTAs a catálogo y carrito.
+4. `not-found.tsx`: texto profesional con ícono SVG, sin referencias a rutas internas ni placeholders.
+5. `loading.tsx`: texto neutro "Un momento…".
+6. `CartOrderBase.tsx`: eliminado (no usado, reemplazado por CartContext en tarea 14).
+7. Checkout page: migrado a CSS classes (`checkout-layout`, `form-group`, `form-input`, `payment-option`, etc.) consistentes con el resto del storefront.
+8. Success page: migrado a CSS classes (`success-section`, `success-icon`, `success-details`, `success-detail-row`), sin emoji, con ícono SVG.
+
+**Decisiones técnicas:**
+- `React.use(params)` para unwrap de Promise en client components de Next.js 15/16.
+- CSS classes añadidas a `globals.css` para checkout y success — evita inline styles y es consistente.
+- La extensión del CSS fue mínima (no hay hojas de estilo adicionales, todo en `globals.css`).
+
+**Pruebas manuales realizadas (2026-05-14):**
+- Servicios: Docker PostgreSQL (5433) + Redis (6379), API en http://localhost:8080, web-store en http://localhost:3000.
+- `GET /` → 200 | eyebrow "Bienvenido" ✓ | hero text ✓ | "Carry Everyday Backpack" cargado ✓.
+- `GET /catalog` → 200 | "Todos los productos" ✓ | placeholder viejo eliminado ✓ | 5 productos visibles ✓.
+- `GET /product/carry-everyday-backpack` → 200 | precio GTQ ✓ | CTA "Agregar al carrito" ✓ | imagen real ✓.
+- `GET /cart` → 200 | empty state correcto ✓.
+- `GET /account` → 200 | "Área de clientes" ✓ | placeholder viejo eliminado ✓ | "Próximamente" ✓.
+- `GET /api/v1/catalog/products` → 200 | 5 productos seed con imágenes.
+- `POST /api/v1/checkout/sessions` (2 items) → 200 | session.id ✓ | totales GTQ 1029.00 ✓.
+- `PUT /api/v1/checkout/sessions/{id}/customer` → 200 ✓.
+- `POST /api/v1/checkout/sessions/{id}/payment-method` (CashOnDelivery) → 200 | orderStatus=Confirmed ✓.
+- Flujo OnlineSimulated completo → paymentStatus=Paid | orderStatus=Confirmed ✓.
+- `GET /checkout/{sid}/success` → 200 ✓.
+- `typecheck web-store` → sin errores ✓.
+- `build web-store` → limpio, 8 rutas optimizadas ✓.
+- `typecheck web-admin` → sin errores ✓.
+
+**Limitaciones:**
+- Interacciones DOM (clicks, localStorage) requieren navegador real — validadas a nivel SSR+API.
+- El warning `baseline-browser-mapping` persiste en builds — no bloquea.
 
 ### Tarea 14 — Refinamiento del Storefront, Carrito Real y Pruebas desde la Web
 

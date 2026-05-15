@@ -73,6 +73,7 @@ desktop.ini
 *.code-workspace
 *.sublime-project
 *.sublime-workspace
+*.lscache
 
 # ─── Variables de entorno sensibles ──────────────────────────────────────────
 # Los archivos .env.example SÍ se versionan.
