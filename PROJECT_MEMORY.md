@@ -364,6 +364,53 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
 
+### Tarea 17 (Prompt 14) — Diagnóstico y Corrección del Sync de Pedidos en Admin
+
+**Problema reportado:** Las órdenes creadas desde el checkout del storefront no se reflejaban correctamente en la página de pedidos del admin (`/orders`).
+
+**Causa raíz encontrada (dos problemas independientes):**
+
+1. **Backend — sin filtro de Draft en admin:** `GET /api/v1/admin/orders/` devolvía TODAS las órdenes, incluyendo las que están en estado `Draft` (sesiones de checkout iniciadas pero abandonadas antes de completar el pago). Estas órdenes tienen `customerName`/`email`/`phone`/`address` vacíos, lo que hacía que la tabla admin luciera rota — con filas con datos faltantes mezcladas con órdenes reales.
+
+2. **Frontend web-admin `apiFetch` — misma vulnerabilidad que web-store:** El cliente `apiFetch` en `apps/web-admin/lib/api/client.ts` llamaba `response.json()` incondicionalmente, igual que el bug corregido en Tarea 16. No causaba error en este flujo específico (el endpoint devuelve JSON), pero era una bomba de tiempo.
+
+**Correcciones aplicadas:**
+
+1. **Backend `OrderEndpoints.cs`:** Agregado `.Where(order => order.Status != OrderStatuses.Draft)` en la query del admin — solo se exponen órdenes en estado Confirmed, PendingPayment, etc. Las órdenes Draft son ruido interno del motor de checkout.
+
+2. **Frontend `apps/web-admin/lib/api/client.ts`:** Mismo fix defensivo que web-store — verifica 204/body vacío antes de parsear JSON.
+
+3. **Frontend `apps/web-admin/app/(admin)/orders/OrdersView.tsx`:** Mejoras de calidad:
+   - `err: any` → `err: unknown` con función `errMsg()` tipada correctamente.
+   - Botón "Actualizar" (refresh manual) visible en la cabecera de la vista.
+   - Estado de error con botón "Reintentar".
+   - Campos vacíos (`customerName`, `phone`, `address`) muestran texto de fallback en lugar de celdas en blanco.
+   - Colores de estado de orden (`Confirmed`/`PendingPayment`/`Cancelled`) centralizados en mapa `STATUS_COLORS`.
+   - Colores de estado de pago (`Paid`/`Failed`/`Pending`) centralizados en `PAYMENT_COLORS`.
+   - `'—'` en lugar de `-` para celdas sin datos, alineado con convención tipográfica.
+
+**Decisiones técnicas:**
+- Filtrar Draft en el backend (no en el frontend) es la decisión correcta: los datos nunca deben salir de la capa de acceso a datos si no son válidos para el consumidor.
+- Mantener las órdenes Draft en BD es correcto — son necesarias para el flujo de checkout activo (la sesión las referencia).
+- No se borran órdenes Draft automáticamente — eso es trabajo de un proceso de cleanup futuro.
+
+**Prueba E2E manual (2026-05-15):**
+- `GET /api/v1/admin/orders/` con JWT admin → **7 órdenes Confirmed** (antes: 10 incluyendo 3 Draft) ✓
+- 0 órdenes con `customerName` vacío en la respuesta ✓
+- Tipos correctos y build limpio en web-admin ✓
+
+**Archivos modificados:**
+- `apps/api/src/TiendaOnline.Api/Modules/Orders/OrderEndpoints.cs` — filtro Draft en query admin
+- `apps/web-admin/lib/api/client.ts` — `apiFetch` defensivo ante body vacío y 204
+- `apps/web-admin/app/(admin)/orders/OrdersView.tsx` — tipado, refresh, fallbacks, colores
+- `docs/handoffs/2026-05-15_admin_orders_sync.md` — nuevo
+
+**Validaciones ejecutadas:**
+- `npm run typecheck -w @tienda-online/web-admin` → sin errores ✓
+- `npm run build -w @tienda-online/web-admin` → limpio, 11 rutas ✓
+- `dotnet build --no-incremental` API → 0 errores ✓
+- `dotnet test --no-build` → 15/15 ✓
+
 ### Tarea 16 (Prompt 13) — Diagnóstico y Corrección del Flujo de Checkout/Pago
 
 **Causa raíz encontrada:**

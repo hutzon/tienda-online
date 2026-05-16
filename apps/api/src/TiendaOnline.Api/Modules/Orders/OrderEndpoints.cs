@@ -102,6 +102,7 @@ public static class OrderEndpoints
                 .Include(order => order.Items)
                 .Include(order => order.PaymentAttempts)
                 .Include(order => order.Invoices)
+                .Where(order => order.Status != OrderStatuses.Draft)
                 .OrderByDescending(order => order.CreatedAt)
                 .Select(order => order.ToResponse())
                 .ToListAsync();
