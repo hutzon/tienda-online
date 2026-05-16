@@ -51,6 +51,10 @@ export default function OrdersView() {
 
   useEffect(() => {
     loadOrders();
+    // Refresh when the tab regains focus so orders placed in the storefront appear
+    const onFocus = () => loadOrders();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   if (loading && orders.length === 0) return <div>Cargando pedidos...</div>;

@@ -120,6 +120,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
+    // Write synchronously so navigation doesn't race the useEffect flush
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([])); } catch { /* ignore */ }
   }, []);
 
   const totalItems = state.items.reduce((sum, i) => sum + i.quantity, 0);

@@ -91,6 +91,38 @@ public static class OrderEndpoints
         })
         .WithName("CreateOrder");
 
+        publicGroup.MapGet("/track", async (string number, AppCommerceContext dbContext) =>
+        {
+            if (string.IsNullOrWhiteSpace(number))
+                return Results.BadRequest(new { message = "Order number is required." });
+
+            var order = await dbContext.Orders
+                .AsNoTracking()
+                .Include(o => o.Items)
+                .Include(o => o.PaymentAttempts)
+                .FirstOrDefaultAsync(o => o.OrderNumber == number.Trim().ToUpperInvariant());
+
+            if (order is null || order.Status == OrderStatuses.Draft)
+                return Results.NotFound(new { message = "Pedido no encontrado." });
+
+            var lastPayment = order.PaymentAttempts?
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefault();
+
+            return Results.Ok(new OrderTrackingResponse(
+                order.OrderNumber,
+                order.Status,
+                order.Currency,
+                order.Total,
+                order.CreatedAt,
+                lastPayment?.PaymentMethod,
+                lastPayment?.Status,
+                order.Items.Select(i => new OrderTrackingItemResponse(
+                    i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList()
+            ));
+        })
+        .WithName("TrackOrder");
+
         var adminGroup = app.MapGroup("/api/v1/admin/orders")
             .WithTags("Admin Orders")
             .RequireAuthorization(AppPolicies.RequireAdmin);
@@ -145,6 +177,22 @@ public sealed record CreateOrderRequest(
     string CustomerEmail,
     string? Notes,
     List<CreateOrderItemRequest> Items);
+
+public sealed record OrderTrackingResponse(
+    string OrderNumber,
+    string Status,
+    string Currency,
+    decimal Total,
+    DateTimeOffset CreatedAt,
+    string? PaymentMethod,
+    string? PaymentStatus,
+    List<OrderTrackingItemResponse> Items);
+
+public sealed record OrderTrackingItemResponse(
+    string ProductName,
+    int Quantity,
+    decimal UnitPrice,
+    decimal LineTotal);
 
 public sealed record CreateOrderItemRequest(Guid ProductId, int Quantity);
 

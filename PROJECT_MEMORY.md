@@ -364,6 +364,66 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
 
+### Tarea 19 (Prompt 16) — Carrito no se limpiaba, admin no refrescaba, seguimiento de pedido
+
+**Problemas reportados por el usuario:**
+1. El carrito seguía mostrando los mismos items después de una compra exitosa.
+2. El pedido no aparecía en el administrador.
+3. Se solicitó una pantalla de seguimiento de pedido en el storefront.
+
+**Causa raíz 1 — carrito no se limpiaba (race condition React/localStorage):**
+`clearCart()` en `CartContext` solo despachaba `CLEAR_CART` al estado de React. El `useEffect` que persiste a `localStorage` es asíncrono (corre después del próximo render). Cuando `router.push()` se llama inmediatamente después de `clearCart()`, el componente puede desmontarse antes de que el efecto de persistencia corra, dejando los datos viejos en `localStorage`. Al montar la página `/cart` nueva, se rehidrata desde `localStorage` y aparecen todos los items.
+
+**Fix:** Modificado `clearCart()` en `CartContext.tsx` para escribir `[]` a `localStorage` de forma síncrona antes de que React procese el re-render:
+```typescript
+const clearCart = useCallback(() => {
+  dispatch({ type: 'CLEAR_CART' });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify([])); } catch { }
+}, []);
+```
+
+**Causa raíz 2 — admin no refrescaba automáticamente:**
+`OrdersView.tsx` tenía `useEffect(() => { loadOrders(); }, [])` que solo carga al montar. Si la página ya estaba abierta mientras se hacía una compra en el storefront, no se actualizaba.
+
+**Fix:** Añadido listener de `window.focus` para refrescar al volver a la pestaña:
+```typescript
+useEffect(() => {
+  loadOrders();
+  const onFocus = () => loadOrders();
+  window.addEventListener('focus', onFocus);
+  return () => window.removeEventListener('focus', onFocus);
+}, []);
+```
+
+**Nueva funcionalidad — seguimiento de pedido:**
+
+- **Backend:** `GET /api/v1/orders/track?number={orderNumber}` (público, sin auth). Devuelve número de orden, estado, total, método/estado de pago, e items. Retorna 404 para órdenes inexistentes o en Draft. No expone datos personales del cliente.
+- **Frontend `commerce.ts`:** `trackOrder(orderNumber)` con interfaz `OrderTrackingResponse`.
+- **Página `/track`:** Form de búsqueda + timeline de estados (Pedido recibido → Pago confirmado → En preparación → En camino → Entregado) + tabla de productos + totales. Soporta URL param `?numero=ORD-xxx` para deep linking.
+- **Success page:** Botón "Ver estado del pedido" que enlaza a `/track?numero={orderNumber}`.
+- **Header:** Enlace "Seguimiento" en la navegación principal.
+- **CSS:** Clases `track-*` añadidas a `globals.css`.
+
+**Archivos modificados:**
+- `apps/web-store/lib/cart/CartContext.tsx` — `clearCart()` escribe localStorage síncronamente
+- `apps/web-admin/app/(admin)/orders/OrdersView.tsx` — refresh en window.focus
+- `apps/api/src/TiendaOnline.Api/Modules/Orders/OrderEndpoints.cs` — nuevo endpoint `GET /track` + records
+- `apps/web-store/lib/api/commerce.ts` — `trackOrder()` + tipos
+- `apps/web-store/app/track/page.tsx` — nuevo (página de seguimiento)
+- `apps/web-store/app/checkout/[sessionId]/success/page.tsx` — botón "Ver estado del pedido"
+- `apps/web-store/components/storefront/PublicHeader.tsx` — enlace "Seguimiento"
+- `apps/web-store/app/globals.css` — clases tracking
+
+**Validaciones:**
+- `npm run typecheck -w @tienda-online/web-store` → sin errores ✓
+- `npm run typecheck -w @tienda-online/web-admin` → sin errores ✓
+- `npm run build -w @tienda-online/web-store` → 9 rutas (incluye `/track`) ✓
+- `npm run build -w @tienda-online/web-admin` → 11 rutas ✓
+- `dotnet build --no-incremental` → 0 errores ✓
+- `dotnet test` → 15/15 ✓
+- `GET /api/v1/orders/track?number=ORD-xxx` → datos correctos ✓
+- `GET /api/v1/orders/track?number=INVALID` → 404 ✓
+
 ### Tarea 18 (Prompt 15) — Cierre Real de Orden Post-Checkout y Limpieza de Carrito
 
 **Problema reportado:** Después de una compra exitosa el carrito seguía cargado, el usuario podía volver a procesar el mismo pago, y la orden no se reflejaba claramente en admin.

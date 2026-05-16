@@ -111,11 +111,11 @@ export default function CheckoutSuccessPage({ params }: { params: Promise<{ sess
           </div>
 
           <div className="hero-actions" style={{ justifyContent: 'center' }}>
-            <Link href="/catalog" className="btn-primary">
-              Seguir comprando
+            <Link href={`/track?numero=${encodeURIComponent(order.orderNumber)}`} className="btn-primary">
+              Ver estado del pedido
             </Link>
-            <Link href="/" className="btn-secondary">
-              Volver al inicio
+            <Link href="/catalog" className="btn-secondary">
+              Seguir comprando
             </Link>
           </div>
         </div>

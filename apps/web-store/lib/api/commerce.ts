@@ -169,3 +169,27 @@ export async function simulatePayment(request: SimulatePaymentRequest): Promise<
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+export interface OrderTrackingItem {
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface OrderTrackingResponse {
+  orderNumber: string;
+  status: string;
+  currency: string;
+  total: number;
+  createdAt: string;
+  paymentMethod: string | null;
+  paymentStatus: string | null;
+  items: OrderTrackingItem[];
+}
+
+export async function trackOrder(orderNumber: string): Promise<OrderTrackingResponse> {
+  return apiFetch<OrderTrackingResponse>(
+    `/api/v1/orders/track?number=${encodeURIComponent(orderNumber.trim().toUpperCase())}`
+  );
+}

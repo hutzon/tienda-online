@@ -19,6 +19,7 @@ export function PublicHeader() {
         <nav className="public-nav" aria-label="Navegación principal">
           <Link href="/">Inicio</Link>
           <Link href="/catalog">Catálogo</Link>
+          <Link href="/track">Seguimiento</Link>
           <Link href="/cart" className="nav-cart-link">
             <ShoppingCartIcon style={{ width: '1rem', height: '1rem' }} />
             <span>Carrito</span>
