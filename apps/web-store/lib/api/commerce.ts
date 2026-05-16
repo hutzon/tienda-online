@@ -147,7 +147,7 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
 }
 
 export async function updateCheckoutCustomer(sessionId: string, request: UpdateCustomerRequest): Promise<void> {
-  return apiFetch<void>(`/api/v1/checkout/sessions/${sessionId}/customer`, {
+  await apiFetch<{ updated: boolean }>(`/api/v1/checkout/sessions/${sessionId}/customer`, {
     method: 'PUT',
     body: JSON.stringify(request),
     headers: { 'Content-Type': 'application/json' },

@@ -133,7 +133,7 @@ public static class CheckoutEndpoints
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            return Results.Ok();
+            return Results.Ok(new { updated = true });
         })
         .WithName("UpdateCheckoutCustomer");
 

@@ -364,6 +364,45 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
 
+### Tarea 16 (Prompt 13) — Diagnóstico y Corrección del Flujo de Checkout/Pago
+
+**Causa raíz encontrada:**
+- `PUT /api/v1/checkout/sessions/{id}/customer` devolvía `Results.Ok()` sin cuerpo (HTTP 200 con body vacío).
+- `apiFetch` en el frontend llamaba `response.json()` incondicionalmente → `"Unexpected end of JSON input"`.
+
+**Correcciones aplicadas:**
+1. **Backend `CheckoutEndpoints.cs`**: cambiado `Results.Ok()` → `Results.Ok(new { updated = true })` para contrato explícito.
+2. **Frontend `client.ts` (`apiFetch`)**: agregado manejo defensivo antes de `.json()`:
+   - 204 No Content → retorna `undefined as T` directamente.
+   - Body vacío → retorna `undefined as T` sin parsear.
+   - Body con contenido → parsea con `JSON.parse(text)`.
+3. **Frontend `commerce.ts` (`updateCheckoutCustomer`)**: tipo correcto `apiFetch<{ updated: boolean }>` en vez de `apiFetch<void>`.
+
+**Decisiones técnicas:**
+- Fix doble (backend + frontend): el backend es ahora explícito en su contrato; el frontend es defensivo ante respuestas vacías o 204 de cualquier endpoint futuro.
+- `JSON.parse(text)` en lugar de `response.json()`: permite verificar que el body no esté vacío antes de parsear.
+- No se usó `Results.NoContent()` (204) porque la convención del proyecto es 200 + JSON en todos los endpoints mutables.
+
+**Pruebas manuales realizadas (2026-05-15):**
+- Servicios: Docker (PG 5433, Redis 6379), API http://localhost:8080, web-store http://localhost:3000.
+- PUT /customer → 200 `{"updated":true}` ✓ (antes fallaba con body vacío).
+- Flujo CashOnDelivery completo: crear sesión → update customer → payment method → session Completed ✓.
+- Flujo OnlineSimulated completo: crear sesión → update customer → payment method → simulate → Paid/Confirmed ✓.
+- Success page /checkout/{id}/success → 200 ✓.
+- Todas las rutas principales → 200 ✓.
+
+**Archivos modificados en esta tarea:**
+- `apps/api/src/TiendaOnline.Api/Modules/Checkout/CheckoutEndpoints.cs` — `Results.Ok()` → `Results.Ok(new { updated = true })`
+- `apps/web-store/lib/api/client.ts` — `apiFetch` defensivo ante body vacío y 204
+- `apps/web-store/lib/api/commerce.ts` — tipo correcto en `updateCheckoutCustomer`
+- `docs/handoffs/2026-05-15_fix_checkout_json_parse.md` — nuevo
+
+**Validaciones ejecutadas:**
+- `dotnet build` API → 0 errores ✓
+- `dotnet test` 15/15 ✓
+- `npm run typecheck -w @tienda-online/web-store` → sin errores ✓
+- `npm run build -w @tienda-online/web-store` → limpio ✓
+
 ### Tarea 15 (Prompt 12) — Refinamiento Visual del Storefront y Pruebas desde la Web con Docker
 
 **Contexto de arranque:** Docker disponible (PostgreSQL en 5433, Redis en 6379). Stack completo corriendo.

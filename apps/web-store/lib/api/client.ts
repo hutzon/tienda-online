@@ -36,7 +36,11 @@ export async function apiFetch<T>(
     throw new StorefrontApiError(response.status, text || 'API request failed.');
   }
 
-  return response.json() as Promise<T>;
+  // 204 No Content or empty body — return undefined without attempting JSON parse
+  if (response.status === 204) return undefined as unknown as T;
+  const text = await response.text();
+  if (!text) return undefined as unknown as T;
+  return JSON.parse(text) as T;
 }
 
 export function getApiBaseUrl() {
