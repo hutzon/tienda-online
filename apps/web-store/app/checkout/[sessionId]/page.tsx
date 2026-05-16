@@ -10,10 +10,12 @@ import {
   simulatePayment,
   CheckoutSessionDetailResponse
 } from '@/lib/api/commerce';
+import { useCart } from '@/lib/cart/CartContext';
 
 export default function CheckoutPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const router = useRouter();
   const { sessionId } = use(params);
+  const { clearCart } = useCart();
 
   const [session, setSession] = useState<CheckoutSessionDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ sessionId: 
       setLoading(true);
       const res = await selectPaymentMethod(sessionId, { paymentMethod });
       if (paymentMethod === 'CashOnDelivery') {
+        clearCart();
         router.push(`/checkout/${sessionId}/success`);
       } else {
         setPaymentAttemptId(res.paymentAttemptId);
@@ -85,6 +88,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ sessionId: 
       setProcessingPayment(true);
       const res = await simulatePayment({ paymentAttemptId, success });
       if (res.paymentStatus === 'Paid') {
+        clearCart();
         router.push(`/checkout/${sessionId}/success`);
       } else {
         setError('El pago fue rechazado. Por favor elige otro método o intenta de nuevo.');

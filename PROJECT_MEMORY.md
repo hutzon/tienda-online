@@ -364,6 +364,51 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
 
+### Tarea 18 (Prompt 15) — Cierre Real de Orden Post-Checkout y Limpieza de Carrito
+
+**Problema reportado:** Después de una compra exitosa el carrito seguía cargado, el usuario podía volver a procesar el mismo pago, y la orden no se reflejaba claramente en admin.
+
+**Diagnóstico completo:**
+
+1. **Causa raíz confirmada — cart no se limpiaba:** El carrito (`localStorage`, clave `tienda_cart`, gestionado por `CartContext`) nunca se limpiaba después de una compra. Ni `CheckoutPage` ni `CheckoutSuccessPage` llamaban a `clearCart()`. El usuario veía la success page y, al volver al carrito, encontraba todos los items todavía ahí.
+
+2. **Cierre de sesión — YA CORRECTO (no requirió cambio):**
+   - CashOnDelivery: `CheckoutEndpoints.cs` marcaba `session.Status = Completed` en la misma transacción que el método de pago.
+   - OnlineSimulated: `PaymentEndpoints.cs` buscaba la sesión activa del pedido y la marcaba `Completed` al procesar el pago exitoso.
+   - El checkout page ya redirigía a success si `session.status === 'Completed'`, bloqueando re-entradas.
+
+3. **Reprocesso bloqueado — YA CORRECTO (no requirió cambio):**
+   - Backend bloquea cualquier mutación sobre sesiones no-Active con HTTP 400 ("Session is no longer active").
+   - Verificado: `POST /checkout/sessions/{id}/payment-method` sobre sesión Completed → 400 BadRequest ✓
+
+4. **Admin visibility — YA CORRECTO desde Prompt 14:** Orders endpoint filtra Draft; botón "Actualizar" disponible.
+
+**Corrección aplicada:**
+- `apps/web-store/app/checkout/[sessionId]/page.tsx`: añadido `const { clearCart } = useCart()` + llamada a `clearCart()` antes de `router.push(...success)` en ambos paths de pago:
+  - CashOnDelivery: después de `selectPaymentMethod` exitoso
+  - OnlineSimulated: después de `simulatePayment` con `paymentStatus === 'Paid'`
+- El carrito se limpia en el checkout page (no en success page) para evitar limpiar items nuevos si el usuario recarga la success page después de agregar items al carrito.
+
+**Decisiones técnicas:**
+- Limpiar en `CheckoutPage` (no en success page): el carrito se limpia exactamente una vez, en el momento de confirmación de compra, antes de navegar a success.
+- Si se limpiara en success page, recargar la URL de éxito limpiaría cualquier carrito nuevo que el usuario haya creado después de comprar.
+- No se requirió cambio en backend: ciclo de vida de sesión y protecciones ya eran correctos.
+
+**Pruebas API E2E (2026-05-15) — ambos flujos:**
+- CashOnDelivery: Session → Completed | Order → Confirmed | Visible en admin ✓
+- OnlineSimulated: Payment → Paid | Session → Completed | Order → Confirmed | Reprocesso → 400 BadRequest ✓
+- `GET /api/v1/admin/orders/` con JWT → todas órdenes Confirmed, ningún Draft ✓
+
+**Archivos modificados:**
+- `apps/web-store/app/checkout/[sessionId]/page.tsx` — `useCart` + `clearCart()` en paths de pago exitoso
+
+**Validaciones ejecutadas:**
+- `npm run typecheck -w @tienda-online/web-store` → sin errores ✓
+- `npm run build -w @tienda-online/web-store` → limpio, 8 rutas ✓
+
+**Limitación documentada:**
+- Las pruebas de interacción real del carrito (localStorage) requieren navegador real. El carrito fue validado a nivel de código (lógica correcta, `clearCart()` en paths confirmados) y el flujo API fue validado completamente. No es posible validar localStorage desde CLI.
+
 ### Tarea 17 (Prompt 14) — Diagnóstico y Corrección del Sync de Pedidos en Admin
 
 **Problema reportado:** Las órdenes creadas desde el checkout del storefront no se reflejaban correctamente en la página de pedidos del admin (`/orders`).
