@@ -138,6 +138,37 @@ export async function emitInvoice(orderId: string): Promise<InvoiceResponse> {
   });
 }
 
+export interface OrderTrackingEventResponse {
+  id: string;
+  status: string;
+  comment: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export async function fetchOrderTracking(orderId: string): Promise<OrderTrackingEventResponse[]> {
+  return apiFetch<OrderTrackingEventResponse[]>(`/api/v1/admin/orders/${orderId}/tracking`, {
+    authenticated: true,
+  });
+}
+
+export async function addOrderTrackingEvent(
+  orderId: string,
+  status: string,
+  comment?: string,
+  createdBy?: string,
+): Promise<OrderTrackingEventResponse> {
+  return apiFetch<OrderTrackingEventResponse>(`/api/v1/admin/orders/${orderId}/tracking`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status,
+      comment: comment || null,
+      createdBy: createdBy || null,
+    }),
+    authenticated: true,
+  });
+}
+
 export async function fetchProductImages(productId: string): Promise<ProductImageDto[]> {
   return apiFetch<ProductImageDto[]>(
     `/api/v1/admin/catalog/products/${productId}/images`,

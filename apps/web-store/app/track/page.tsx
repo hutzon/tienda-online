@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { StorefrontContainer } from '@/components/storefront/StorefrontContainer';
-import { trackOrder, OrderTrackingResponse } from '@/lib/api/commerce';
+import { trackOrder, OrderTrackingResponse, OrderTrackingEvent } from '@/lib/api/commerce';
 import { StorefrontApiError } from '@/lib/api/client';
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
@@ -30,6 +30,100 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   Failed:  'Rechazado',
 };
 
+const TRACKING_STATUS_LABELS: Record<string, string> = {
+  OrderReceived: 'Pedido recibido',
+  Preparing:     'Preparando pedido',
+  Packed:        'Empacado',
+  InTransit:     'En camino',
+  Delivered:     'Entregado',
+  Cancelled:     'Cancelado',
+};
+
+function formatEventDate(iso: string): string {
+  return new Date(iso).toLocaleString('es-GT', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function TrackingHistory({ events }: { events: OrderTrackingEvent[] }) {
+  return (
+    <div className="track-timeline">
+      <h3 style={{ marginBottom: '1rem' }}>Historial de seguimiento</h3>
+      {events.map((event) => {
+        const label = TRACKING_STATUS_LABELS[event.status] ?? event.status;
+        const isCancelled = event.status === 'Cancelled';
+        return (
+          <div
+            key={event.id}
+            className={`track-step track-step--done${isCancelled ? ' track-step--cancelled' : ''}`}
+          >
+            <span className="track-step-dot" />
+            <div>
+              <strong>{label}</strong>
+              <p className="track-step-date">{formatEventDate(event.createdAt)}</p>
+              {event.comment && <p className="track-step-comment">{event.comment}</p>}
+              {event.createdBy && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: 0 }}>
+                  Actualizado por: {event.createdBy}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StaticTimeline({ result }: { result: OrderTrackingResponse }) {
+  return (
+    <div className="track-timeline">
+      <div className={`track-step ${['Confirmed', 'PendingPayment', 'Cancelled'].includes(result.status) ? 'track-step--done' : ''}`}>
+        <span className="track-step-dot" />
+        <div>
+          <strong>Pedido recibido</strong>
+          <p>Tu pedido fue registrado en nuestro sistema.</p>
+        </div>
+      </div>
+      <div className={`track-step ${result.status === 'Confirmed' ? 'track-step--done' : result.status === 'PendingPayment' ? 'track-step--active' : ''}`}>
+        <span className="track-step-dot" />
+        <div>
+          <strong>Pago confirmado</strong>
+          <p>
+            {result.status === 'Confirmed'
+              ? `Método: ${PAYMENT_METHOD_LABELS[result.paymentMethod ?? ''] ?? result.paymentMethod ?? '—'} · Estado: ${PAYMENT_STATUS_LABELS[result.paymentStatus ?? ''] ?? result.paymentStatus ?? '—'}`
+              : result.status === 'PendingPayment'
+              ? 'En espera de confirmación de pago.'
+              : '—'}
+          </p>
+        </div>
+      </div>
+      <div className={`track-step ${result.status === 'Confirmed' ? 'track-step--active' : ''}`}>
+        <span className="track-step-dot" />
+        <div>
+          <strong>En preparación</strong>
+          <p>{result.status === 'Confirmed' ? 'Tu pedido está siendo preparado para envío.' : '—'}</p>
+        </div>
+      </div>
+      <div className="track-step">
+        <span className="track-step-dot" />
+        <div>
+          <strong>En camino</strong>
+          <p>Tu pedido está en camino a tu dirección.</p>
+        </div>
+      </div>
+      <div className="track-step">
+        <span className="track-step-dot" />
+        <div>
+          <strong>Entregado</strong>
+          <p>El pedido fue entregado.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TrackPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -39,7 +133,6 @@ function TrackPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
 
-  // Auto-search if numero param is present in URL
   useEffect(() => {
     const numero = searchParams.get('numero');
     if (numero && numero.trim()) {
@@ -133,49 +226,9 @@ function TrackPageInner() {
               )}
             </div>
 
-            <div className="track-timeline">
-              <div className={`track-step ${['Confirmed', 'PendingPayment', 'Cancelled'].includes(result.status) ? 'track-step--done' : ''}`}>
-                <span className="track-step-dot" />
-                <div>
-                  <strong>Pedido recibido</strong>
-                  <p>Tu pedido fue registrado en nuestro sistema.</p>
-                </div>
-              </div>
-              <div className={`track-step ${result.status === 'Confirmed' ? 'track-step--done' : result.status === 'PendingPayment' ? 'track-step--active' : ''}`}>
-                <span className="track-step-dot" />
-                <div>
-                  <strong>Pago confirmado</strong>
-                  <p>
-                    {result.status === 'Confirmed'
-                      ? `Método: ${PAYMENT_METHOD_LABELS[result.paymentMethod ?? ''] ?? result.paymentMethod ?? '—'} · Estado: ${PAYMENT_STATUS_LABELS[result.paymentStatus ?? ''] ?? result.paymentStatus ?? '—'}`
-                      : result.status === 'PendingPayment'
-                      ? 'En espera de confirmación de pago.'
-                      : '—'}
-                  </p>
-                </div>
-              </div>
-              <div className={`track-step ${result.status === 'Confirmed' ? 'track-step--active' : ''}`}>
-                <span className="track-step-dot" />
-                <div>
-                  <strong>En preparación</strong>
-                  <p>{result.status === 'Confirmed' ? 'Tu pedido está siendo preparado para envío.' : '—'}</p>
-                </div>
-              </div>
-              <div className="track-step">
-                <span className="track-step-dot" />
-                <div>
-                  <strong>En camino</strong>
-                  <p>Tu pedido está en camino a tu dirección.</p>
-                </div>
-              </div>
-              <div className="track-step">
-                <span className="track-step-dot" />
-                <div>
-                  <strong>Entregado</strong>
-                  <p>El pedido fue entregado.</p>
-                </div>
-              </div>
-            </div>
+            {result.events && result.events.length > 0
+              ? <TrackingHistory events={result.events} />
+              : <StaticTimeline result={result} />}
 
             <div className="track-items">
               <h3>Productos</h3>

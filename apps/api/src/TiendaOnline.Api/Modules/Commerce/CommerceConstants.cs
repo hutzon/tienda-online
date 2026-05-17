@@ -29,3 +29,13 @@ public static class CheckoutSessionStatuses
     public const string Completed = "Completed";
     public const string Expired = "Expired";
 }
+
+public static class TrackingStatuses
+{
+    public const string OrderReceived = "OrderReceived";
+    public const string Preparing = "Preparing";
+    public const string Packed = "Packed";
+    public const string InTransit = "InTransit";
+    public const string Delivered = "Delivered";
+    public const string Cancelled = "Cancelled";
+}

@@ -177,6 +177,14 @@ export interface OrderTrackingItem {
   lineTotal: number;
 }
 
+export interface OrderTrackingEvent {
+  id: string;
+  status: string;
+  comment: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
 export interface OrderTrackingResponse {
   orderNumber: string;
   status: string;
@@ -186,6 +194,7 @@ export interface OrderTrackingResponse {
   paymentMethod: string | null;
   paymentStatus: string | null;
   items: OrderTrackingItem[];
+  events: OrderTrackingEvent[];
 }
 
 export async function trackOrder(orderNumber: string): Promise<OrderTrackingResponse> {

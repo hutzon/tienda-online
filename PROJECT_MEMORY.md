@@ -364,6 +364,56 @@ $env:Database__UseInMemoryForTesting = "true"; dotnet run --project apps/api/...
 - Docker PostgreSQL usa el puerto 5433 (`docker-compose.yml`: `5433:5432`).
 - `appsettings.json` tiene `Port=5433` en la connection string.
 
+### Tarea 20 (Prompt 16 formal) — OrderTrackingEvent: historial real, admin UI, storefront dinámico
+
+**Entidad `OrderTrackingEvent`:**
+- Campos: `id (UUID)`, `orderId (FK→orders)`, `status (VARCHAR 30)`, `comment (TEXT nullable)`, `createdBy (VARCHAR 200 nullable)`, `createdAt (TIMESTAMPTZ)`.
+- Estados válidos: `OrderReceived`, `Preparing`, `Packed`, `InTransit`, `Delivered`, `Cancelled`.
+- `TrackingStatuses` static class añadida en `CommerceConstants.cs`.
+- Navigation property `List<OrderTrackingEvent> TrackingEvents` añadida en `Order.cs`.
+- Migración SQL `006_add_order_tracking_events.sql` aplicada a la BD de Docker.
+
+**Endpoints backend nuevos:**
+- `GET /api/v1/admin/orders/{id}/tracking` — lista eventos ordenados por `createdAt` desc (admin, auth).
+- `POST /api/v1/admin/orders/{id}/tracking` — registra nuevo evento; body: `{ status, comment?, createdBy? }` (admin, auth).
+- `GET /api/v1/orders/track?number=...` — actualizado para incluir `events[]` en la respuesta pública.
+
+**Storefront `/track`:**
+- `OrderTrackingResponse` ahora incluye `events: OrderTrackingEvent[]`.
+- Si el pedido tiene eventos reales, se muestra el historial dinámico (`TrackingHistory` component) con timestamp, etiqueta en español, comentario y autor.
+- Si no hay eventos, se muestra el timeline estático (5 pasos como fallback).
+- CSS: clases `track-step-date`, `track-step-comment`, `track-step--cancelled` añadidas a `globals.css`.
+
+**Admin `/orders`:**
+- Columna "Seguimiento" añadida con botón `▼ Seguimiento / ▲ Ocultar`.
+- Al expandir, carga el historial de eventos del pedido (con caché local por `orderId`).
+- Panel inline: historial de eventos ordenado cronológicamente + formulario para registrar nuevo evento (select de estado + textarea de comentario + botón "Registrar").
+- `createdBy` se envía siempre como `"Admin"` desde el formulario.
+
+**Archivos modificados (Tarea 20):**
+- `apps/api/src/TiendaOnline.Api/Modules/Orders/Entities/OrderTrackingEvent.cs` — nuevo
+- `apps/api/src/TiendaOnline.Api/Modules/Commerce/CommerceConstants.cs` — `TrackingStatuses` añadido
+- `apps/api/src/TiendaOnline.Api/Modules/Orders/Entities/Order.cs` — nav property `TrackingEvents`
+- `apps/api/src/TiendaOnline.Api/Modules/Commerce/AppCommerceContext.cs` — DbSet + entity config
+- `apps/api/src/TiendaOnline.Api/Modules/Orders/OrderEndpoints.cs` — nuevos endpoints + records actualizados
+- `infra/db/migrations/006_add_order_tracking_events.sql` — nuevo
+- `apps/web-store/lib/api/commerce.ts` — `OrderTrackingEvent` interface + `events` en response
+- `apps/web-store/app/track/page.tsx` — historial dinámico + fallback estático
+- `apps/web-store/app/globals.css` — clases CSS nuevas para tracking history
+- `apps/web-admin/lib/api/commerce.ts` — `OrderTrackingEventResponse` + `fetchOrderTracking` + `addOrderTrackingEvent`
+- `apps/web-admin/app/(admin)/orders/OrdersView.tsx` — panel expandible de seguimiento
+
+**Validaciones:**
+- `dotnet build --no-incremental` → 0 errores ✓
+- `dotnet test` → 15/15 ✓
+- `npm run typecheck -w @tienda-online/web-store` → sin errores ✓
+- `npm run typecheck -w @tienda-online/web-admin` → sin errores ✓
+- `npm run build -w @tienda-online/web-store` → 9 rutas ✓
+- `npm run build -w @tienda-online/web-admin` → 11 rutas ✓
+- Migración `006` aplicada a Docker PostgreSQL ✓
+
+---
+
 ### Tarea 19 (Prompt 16) — Carrito no se limpiaba, admin no refrescaba, seguimiento de pedido
 
 **Problemas reportados por el usuario:**

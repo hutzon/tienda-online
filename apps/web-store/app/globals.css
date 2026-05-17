@@ -1188,6 +1188,23 @@ dd {
   color: var(--muted);
 }
 
+.track-step-date {
+  margin: 0 0 0.2rem !important;
+  font-size: 0.78rem !important;
+  color: var(--muted) !important;
+}
+
+.track-step-comment {
+  margin: 0.25rem 0 0 !important;
+  font-size: 0.83rem !important;
+  color: var(--text) !important;
+  font-style: italic;
+}
+
+.track-step--cancelled .track-step-dot {
+  background: #c62828;
+}
+
 /* Items table */
 .track-items {
   background: var(--surface-strong);

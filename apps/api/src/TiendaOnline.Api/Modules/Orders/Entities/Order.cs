@@ -34,4 +34,6 @@ public sealed class Order
     public List<PaymentAttempt>? PaymentAttempts { get; set; }
 
     public List<Invoice>? Invoices { get; set; }
+
+    public List<OrderTrackingEvent> TrackingEvents { get; set; } = [];
 }

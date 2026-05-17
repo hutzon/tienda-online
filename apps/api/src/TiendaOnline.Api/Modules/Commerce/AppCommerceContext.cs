@@ -1,12 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using TiendaOnline.Api.Modules.Billing.Entities;
 using TiendaOnline.Api.Modules.Catalog.Entities;
-
+using TiendaOnline.Api.Modules.Checkout.Entities;
 using TiendaOnline.Api.Modules.Inventory.Entities;
 using TiendaOnline.Api.Modules.Orders.Entities;
-
-using TiendaOnline.Api.Modules.Checkout.Entities;
 using TiendaOnline.Api.Modules.Payments.Entities;
-using TiendaOnline.Api.Modules.Billing.Entities;
 
 namespace TiendaOnline.Api.Modules.Commerce;
 
@@ -34,6 +32,8 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
     public DbSet<Brand> Brands => Set<Brand>();
 
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+
+    public DbSet<OrderTrackingEvent> OrderTrackingEvents => Set<OrderTrackingEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -221,6 +221,21 @@ public sealed class AppCommerceContext(DbContextOptions<AppCommerceContext> opti
             entity.HasOne(img => img.Product)
                 .WithMany(product => product.Images)
                 .HasForeignKey(img => img.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrderTrackingEvent>(entity =>
+        {
+            entity.ToTable("order_tracking_events");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Comment).HasMaxLength(1000);
+            entity.Property(e => e.CreatedBy).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasOne(e => e.Order)
+                .WithMany(o => o.TrackingEvents)
+                .HasForeignKey(e => e.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

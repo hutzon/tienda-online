@@ -84,7 +84,7 @@ public static class OrderEndpoints
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var logger = loggerFactory.CreateLogger("OrderEndpoints");
-            logger.LogInformation("Order created successfully. OrderId={OrderId}, OrderNumber={OrderNumber}, Total={Total}", 
+            logger.LogInformation("Order created successfully. OrderId={OrderId}, OrderNumber={OrderNumber}, Total={Total}",
                 order.Id, order.OrderNumber, order.Total);
 
             return Results.Created($"/api/v1/orders/{order.Id}", order.ToResponse());
@@ -100,6 +100,7 @@ public static class OrderEndpoints
                 .AsNoTracking()
                 .Include(o => o.Items)
                 .Include(o => o.PaymentAttempts)
+                .Include(o => o.TrackingEvents)
                 .FirstOrDefaultAsync(o => o.OrderNumber == number.Trim().ToUpperInvariant());
 
             if (order is null || order.Status == OrderStatuses.Draft)
@@ -108,6 +109,11 @@ public static class OrderEndpoints
             var lastPayment = order.PaymentAttempts?
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefault();
+
+            var events = order.TrackingEvents
+                .OrderBy(e => e.CreatedAt)
+                .Select(e => new OrderTrackingEventResponse(e.Id, e.Status, e.Comment, e.CreatedBy, e.CreatedAt))
+                .ToList();
 
             return Results.Ok(new OrderTrackingResponse(
                 order.OrderNumber,
@@ -118,7 +124,8 @@ public static class OrderEndpoints
                 lastPayment?.PaymentMethod,
                 lastPayment?.Status,
                 order.Items.Select(i => new OrderTrackingItemResponse(
-                    i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList()
+                    i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList(),
+                events
             ));
         })
         .WithName("TrackOrder");
@@ -142,6 +149,48 @@ public static class OrderEndpoints
             return Results.Ok(orders);
         })
         .WithName("GetAdminOrders");
+
+        adminGroup.MapGet("/{id:guid}/tracking", async (Guid id, AppCommerceContext dbContext) =>
+        {
+            var exists = await dbContext.Orders.AsNoTracking().AnyAsync(o => o.Id == id);
+            if (!exists) return Results.NotFound();
+
+            var events = await dbContext.OrderTrackingEvents
+                .AsNoTracking()
+                .Where(e => e.OrderId == id)
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(e => new OrderTrackingEventResponse(e.Id, e.Status, e.Comment, e.CreatedBy, e.CreatedAt))
+                .ToListAsync();
+
+            return Results.Ok(events);
+        })
+        .WithName("GetOrderTracking");
+
+        adminGroup.MapPost("/{id:guid}/tracking", async (Guid id, AddTrackingEventRequest request, AppCommerceContext dbContext) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Status))
+                return Results.BadRequest(new { message = "Status is required." });
+
+            var exists = await dbContext.Orders.AsNoTracking().AnyAsync(o => o.Id == id);
+            if (!exists) return Results.NotFound();
+
+            var trackingEvent = new OrderTrackingEvent
+            {
+                OrderId = id,
+                Status = request.Status.Trim(),
+                Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim(),
+                CreatedBy = string.IsNullOrWhiteSpace(request.CreatedBy) ? null : request.CreatedBy.Trim(),
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+
+            dbContext.OrderTrackingEvents.Add(trackingEvent);
+            await dbContext.SaveChangesAsync();
+
+            return Results.Created(
+                $"/api/v1/admin/orders/{id}/tracking/{trackingEvent.Id}",
+                new OrderTrackingEventResponse(trackingEvent.Id, trackingEvent.Status, trackingEvent.Comment, trackingEvent.CreatedBy, trackingEvent.CreatedAt));
+        })
+        .WithName("AddOrderTrackingEvent");
     }
 
     private static Dictionary<string, string[]>? ValidateOrderRequest(CreateOrderRequest request)
@@ -178,6 +227,18 @@ public sealed record CreateOrderRequest(
     string? Notes,
     List<CreateOrderItemRequest> Items);
 
+public sealed record OrderTrackingEventResponse(
+    Guid Id,
+    string Status,
+    string? Comment,
+    string? CreatedBy,
+    DateTimeOffset CreatedAt);
+
+public sealed record AddTrackingEventRequest(
+    string Status,
+    string? Comment,
+    string? CreatedBy);
+
 public sealed record OrderTrackingResponse(
     string OrderNumber,
     string Status,
@@ -186,7 +247,8 @@ public sealed record OrderTrackingResponse(
     DateTimeOffset CreatedAt,
     string? PaymentMethod,
     string? PaymentStatus,
-    List<OrderTrackingItemResponse> Items);
+    List<OrderTrackingItemResponse> Items,
+    List<OrderTrackingEventResponse> Events);
 
 public sealed record OrderTrackingItemResponse(
     string ProductName,
